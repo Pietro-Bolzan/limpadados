@@ -1,0 +1,1643 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LimpaDados</title>
+<meta name="description" content="Limpeza e padronização automática de arquivos CSV, TSV, TXT, JSON e Excel, direto no navegador.">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#ffffff; --panel2:#f9fafb; --ink:#171a21; --muted:#5d6472; --line:#e2e5ea;
+  --accent:#2f5bd3; --accent-ink:#ffffff; --accent-soft:#e8eefc;
+  --good:#1d7f47; --good-soft:#e3f4ea; --warn:#9a5b00; --warn-soft:#fff2d6; --bad:#b83232; --bad-soft:#fde6e6;
+  --imp:#fff1bf; --fmt:#dcebff; --inv:#ffdcdc; --chip:#eef1f5; --shadow:0 1px 2px rgba(16,24,40,.06);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --panel:#171a21; --panel2:#1c2029; --ink:#e8eaef; --muted:#9aa2b1; --line:#2a2f3a;
+    --accent:#7b9cff; --accent-ink:#0f1115; --accent-soft:#1f2a47;
+    --good:#5cc98a; --good-soft:#15301f; --warn:#f0b454; --warn-soft:#3a2b10; --bad:#ff8080; --bad-soft:#3a1717;
+    --imp:#4a3d0c; --fmt:#173159; --inv:#4d1c1c; --chip:#232834; --shadow:none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --panel:#171a21; --panel2:#1c2029; --ink:#e8eaef; --muted:#9aa2b1; --line:#2a2f3a;
+  --accent:#7b9cff; --accent-ink:#0f1115; --accent-soft:#1f2a47;
+  --good:#5cc98a; --good-soft:#15301f; --warn:#f0b454; --warn-soft:#3a2b10; --bad:#ff8080; --bad-soft:#3a1717;
+  --imp:#4a3d0c; --fmt:#173159; --inv:#4d1c1c; --chip:#232834; --shadow:none; color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--accent)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+header.top{position:sticky;top:0;z-index:20;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;align-items:center;gap:16px;min-height:56px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.brand .dot{width:22px;height:22px;border-radius:6px;background:var(--accent);display:inline-block}
+@media (max-width:600px){header.top{position:static}.dim{grid-template-columns:90px 1fr 84px}}
+.steps{display:flex;gap:6px;margin:0 auto;flex-wrap:wrap}
+.steps button{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--muted);cursor:pointer}
+.steps button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.steps button:disabled{cursor:default;opacity:.55}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:14px}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.small{padding:3px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+main{padding:20px 0 60px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:var(--shadow);margin-bottom:16px}
+.panel h2{font-size:16px;margin:0 0 10px}
+.panel h3{font-size:14px;margin:12px 0 6px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:48px 16px;text-align:center;cursor:pointer;background:var(--panel)}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop h1{font-size:20px;margin:6px 0}
+.formats{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);font-size:13px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:16px;padding:0;list-style:none}
+.features li{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+.features b{display:block;font-size:14px}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:10px;padding:10px 14px;margin:12px 0;white-space:pre-line}
+.filebar{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.filebar .name{font-weight:600}
+.kv{font-size:13px;color:var(--muted)}
+.kv b{color:var(--ink);font-weight:600}
+.readopts{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+.readopts label{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+select,input[type=text],input[type=number],textarea{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:5px 8px;max-width:100%}
+textarea{width:100%;min-height:60px}
+.quality{display:grid;grid-template-columns:minmax(200px,260px) 1fr;gap:20px;align-items:center}
+@media (max-width:720px){.quality{grid-template-columns:1fr}}
+.score{display:flex;align-items:center;gap:14px}
+.score .big{font-size:34px;font-weight:700;line-height:1}
+.score .arrow{color:var(--muted)}
+.dims{display:grid;gap:8px}
+.dim{display:grid;grid-template-columns:110px 1fr 92px;gap:10px;align-items:center;font-size:13px}
+.bar{height:8px;background:var(--chip);border-radius:99px;position:relative;overflow:hidden}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+.bar i.b{background:var(--muted);opacity:.45}
+.bar i.a{background:var(--good);height:4px;top:2px}
+.counters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.counter{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.counter .n{font-size:22px;font-weight:700}
+.counter .l{font-size:12px;color:var(--muted)}
+.alerts{list-style:none;padding:0;margin:0;display:grid;gap:6px}
+.alerts li{padding:7px 10px;border-radius:8px;font-size:13px;background:var(--panel2);border-left:3px solid var(--line)}
+.alerts li.warn{background:var(--warn-soft);border-left-color:var(--warn)}
+.alerts li.info{border-left-color:var(--accent)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-size:14px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
+.colgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card.dropped{opacity:.6}
+.card .head{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.card .head input[type=text]{flex:1 1 120px;font-weight:600;min-width:0}
+.badge{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:var(--chip);color:var(--muted);white-space:nowrap}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.good{background:var(--good-soft);color:var(--good)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;font-size:12px}
+.stats div{background:var(--panel2);border-radius:6px;padding:3px 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats span{color:var(--muted);margin-right:4px}
+.did{margin:0;padding-left:18px;font-size:12.5px}
+.did li{margin:1px 0}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:13px}
+.ctl label{display:flex;gap:6px;align-items:center}
+.reason{font-size:12px;color:var(--muted);margin:0}
+.hist{display:flex;align-items:flex-end;gap:1px;height:28px}
+.hist i{flex:1;background:var(--accent);opacity:.55;border-radius:1px 1px 0 0;min-height:1px}
+.top{font-size:12px;display:grid;gap:2px}
+.top div{display:flex;justify-content:space-between;gap:8px}
+.top div span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+details.map summary{cursor:pointer;font-size:13px;color:var(--accent)}
+details.map table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+details.map td{padding:2px 4px;border-bottom:1px solid var(--line)}
+details.map input{width:100%}
+.opts{display:grid;gap:8px}
+.opts label{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.rulebox{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.rulebox label{display:flex;flex-direction:column;font-size:12px;color:var(--muted);gap:2px}
+table.list{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+table.list th,table.list td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:560px}
+table.data{border-collapse:collapse;font-size:13px;white-space:nowrap}
+table.data th,table.data td{padding:4px 10px;border-bottom:1px solid var(--line);text-align:left}
+table.data th{position:sticky;top:0;background:var(--panel2);z-index:1}
+table.data td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.data td.rn{color:var(--muted);font-size:12px}
+td.imp{background:var(--imp)} td.fmt{background:var(--fmt)} td.inv{background:var(--inv)}
+td.nul{color:var(--muted);font-style:italic}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:8px;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--panel);padding:5px 12px;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.exportgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.exportgrid .panel{margin:0}
+.loglist{list-style:none;padding:0;margin:0;font-size:13px}
+.loglist li{padding:5px 0;border-bottom:1px solid var(--line)}
+.loglist b{font-weight:600}
+.busy{position:fixed;inset:0;background:rgba(0,0,0,.18);display:none;align-items:center;justify-content:center;z-index:50}
+.busy.on{display:flex}
+.busy div{background:var(--panel);padding:14px 20px;border-radius:10px;border:1px solid var(--line)}
+.row-actions{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:8px}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:24px 0}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot" aria-hidden="true"></span>LimpaDados</div>
+    <nav class="steps" id="steps" aria-label="Etapas"></nav>
+    <div id="topActions"></div>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+<div class="busy" id="busy" role="status" aria-live="polite"><div>Processando…</div></div>
+<footer class="wrap">LimpaDados — os arquivos são processados apenas no seu navegador; nada é enviado a servidor.</footer>
+
+<script>
+/*CORE-START*/
+// =====================================================================
+// NÚCLEO DE LIMPEZA (sem dependência de interface; testável no Node)
+// Fluxo: leitura -> estrutura -> substituições -> limpeza de texto ->
+// nulos -> tipos/conversão -> categorias -> validação -> duplicatas ->
+// outliers -> valores ausentes -> faixas -> nomes -> exportação
+// =====================================================================
+var Core = (function () {
+  'use strict';
+
+  var NULL_DEFAULT = ['null', 'nan', 'n/a', '#n/a', '#na', 'undefined', '#value!', '#ref!', '#div/0!', 'missing',
+    'vazio', '?', '.', 'n.d.', '<na>', 'nat', 'none', 'na', 'nd', 'nil', '-', '--'];
+  // marcadores que podem ser categorias legítimas ("none" = nenhum, "NA" = América do Norte...)
+  var NULL_AMBIGUOUS = { 'none': 1, 'na': 1, 'nd': 1, 'nil': 1, '-': 1, '--': 1 };
+  var BOOL_T = { 'true': 1, 'verdadeiro': 1, 'sim': 1, 's': 1, 'yes': 1, 'y': 1, '1': 1 };
+  var BOOL_F = { 'false': 1, 'falso': 1, 'não': 1, 'nao': 1, 'n': 1, 'no': 1, '0': 1 };
+  var ABBR_STOP = { 'no': 1, 'nao': 1, 'sim': 1, 'yes': 1, 'ok': 1, 'na': 1, 'none': 1, 's': 1, 'n': 1, 'y': 1 };
+  var ID_FIRST = { 'id': 1, 'cod': 1, 'codigo': 1, 'cpf': 1, 'cnpj': 1, 'cep': 1, 'matricula': 1, 'telefone': 1, 'fone': 1,
+    'celular': 1, 'email': 1, 'rg': 1, 'uuid': 1, 'placa': 1, 'chave': 1, 'zip': 1, 'phone': 1 };
+  var ID_LAST = { 'id': 1, 'cod': 1, 'codigo': 1, 'cpf': 1, 'cnpj': 1, 'cep': 1, 'matricula': 1, 'email': 1, 'conta': 1,
+    'postal': 1, 'uuid': 1, 'telefone': 1, 'key': 1 };
+  var FREE_TEXT = /^(obs|observ|coment|descri|texto|mensag|endere|motivo|detalhe|historico|justific)/;
+  var MONTHS = { jan: 1, janeiro: 1, january: 1, fev: 2, fevereiro: 2, feb: 2, february: 2, mar: 3, marco: 3, 'março': 3, march: 3,
+    abr: 4, abril: 4, apr: 4, april: 4, mai: 5, maio: 5, may: 5, jun: 6, junho: 6, june: 6, jul: 7, julho: 7, july: 7,
+    ago: 8, agosto: 8, aug: 8, august: 8, set: 9, setembro: 9, sep: 9, sept: 9, september: 9, out: 10, outubro: 10, oct: 10,
+    october: 10, nov: 11, novembro: 11, november: 11, dez: 12, dezembro: 12, dec: 12, december: 12 };
+
+  var TYPE_LABEL = { numero: 'Número', data: 'Data', data_hora: 'Data e hora', hora: 'Hora', booleano: 'Booleano',
+    categoria: 'Categoria', texto: 'Texto livre', id: 'Identificador', email: 'E-mail' };
+
+  // ---------------------------------------------------------------- util
+  function stripAccents(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+  function normKey(s) { return stripAccents(String(s).toLowerCase()).replace(/\s+/g, ' ').replace(/[.]+$/, '').trim(); }
+  function nameTokens(name) { return stripAccents(String(name).toLowerCase()).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').split('_').filter(Boolean); }
+  function snake(name) { return nameTokens(name).join('_') || 'coluna'; }
+  function isBlank(v) { return v === null || v === undefined || (typeof v === 'string' && v.trim() === ''); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function round(x, d) { var f = Math.pow(10, d); return Math.round(x * f) / f; }
+  function fmtNum(n) {
+    if (n === null || n === undefined || !isFinite(n)) return '';
+    var a = Math.abs(n);
+    var d = a >= 1000 ? 0 : a >= 10 ? 2 : 3;
+    return n.toLocaleString('pt-BR', { maximumFractionDigits: d });
+  }
+
+  // ------------------------------------------------------------- leitura
+  function decodeBytes(u8, enc) {
+    var hasBom = u8.length >= 3 && u8[0] === 0xEF && u8[1] === 0xBB && u8[2] === 0xBF;
+    if (enc === 'utf-8' || hasBom) return { text: new TextDecoder('utf-8').decode(u8).replace(/^﻿/, ''), encoding: 'UTF-8' };
+    if (enc === 'windows-1252') return { text: new TextDecoder('windows-1252').decode(u8), encoding: 'Windows-1252 (Latin-1)' };
+    try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(u8), encoding: 'UTF-8' }; }
+    catch (e) { return { text: new TextDecoder('windows-1252').decode(u8), encoding: 'Windows-1252 (Latin-1)', autoFallback: true }; }
+  }
+  function looksBinary(u8) {
+    var n = Math.min(u8.length, 4000), z = 0;
+    for (var i = 0; i < n; i++) if (u8[i] === 0) z++;
+    return z > 0;
+  }
+  function isZip(u8) { return u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4B && u8[2] === 0x03 && u8[3] === 0x04; }
+
+  // CSV segundo a RFC 4180: aspas, aspas duplicadas ("") e quebras de linha dentro do campo
+  function parseDelimited(text, delim, maxRows) {
+    var rows = [], row = [], field = '', inQ = false, start = true, i = 0, n = text.length;
+    maxRows = maxRows || Infinity;
+    while (i < n) {
+      var ch = text[i];
+      if (inQ) {
+        if (ch === '"') { if (text[i + 1] === '"') { field += '"'; i += 2; continue; } inQ = false; i++; continue; }
+        field += ch; i++; continue;
+      }
+      if (start && ch === ' ') { var j = i; while (text[j] === ' ') j++; if (text[j] === '"') { i = j; continue; } }
+      if (ch === '"' && start) { inQ = true; start = false; i++; continue; }
+      if (ch === delim) { row.push(field); field = ''; start = true; i++; continue; }
+      if (ch === '\n' || ch === '\r') {
+        row.push(field); rows.push(row); row = []; field = ''; start = true;
+        if (ch === '\r' && text[i + 1] === '\n') i++;
+        i++;
+        if (rows.length >= maxRows) return rows;
+        continue;
+      }
+      field += ch; start = false; i++;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function detectDelimiter(text, ext) {
+    var sample = text.slice(0, 60000), cands = [',', ';', '\t', '|'], best = null, bestScore = 0;
+    cands.forEach(function (d) {
+      var rows = parseDelimited(sample, d, 80).filter(function (r) { return r.some(function (f) { return f.trim() !== ''; }); });
+      if (rows.length > 2 && sample.length === 60000) rows.pop();
+      if (!rows.length) return;
+      var freq = {}; rows.forEach(function (r) { freq[r.length] = (freq[r.length] || 0) + 1; });
+      var mode = 1, mf = 0;
+      Object.keys(freq).forEach(function (k) { var c = +k; if (c > 1 && (freq[k] > mf || (freq[k] === mf && c > mode))) { mode = c; mf = freq[k]; } });
+      if (mode < 2) return;
+      var score = (mf / rows.length) * Math.log2(mode + 1);
+      if ((ext === 'tsv' || ext === 'tab') && d === '\t') score *= 1.5;
+      if (score > bestScore) { bestScore = score; best = d; }
+    });
+    return best;
+  }
+
+  function looksNumberish(x) { return typeof x === 'number' || /^\s*[+-]?[\d.,]*\d[\d.,]*\s*$/.test(String(x)); }
+  function isYearLike(x) { return /^\s*(1[89]|20)\d{2}\s*$/.test(String(x)); }
+  function numCount(row) { var n = 0; for (var i = 0; i < row.length; i++) { var x = row[i]; if (x !== null && x !== undefined && (typeof x === 'number' || (looksNumberish(x) && !isYearLike(x)))) n++; } return n; }
+  function nonEmptyCount(row) { var n = 0; for (var i = 0; i < row.length; i++) if (!isBlank(row[i])) n++; return n; }
+  function firstNonEmpty(row) { for (var i = 0; i < row.length; i++) if (!isBlank(row[i])) return String(row[i]).trim(); return ''; }
+  // forma típica da tabela: largura modal e quantas células numéricas tem uma linha de dados
+  function tableShape(rows) {
+    var lim = Math.min(rows.length, 300), freq = {}, mode = 0, mf = -1;
+    for (var i = 0; i < lim; i++) { var c = rows[i].length; freq[c] = (freq[c] || 0) + 1; }
+    Object.keys(freq).forEach(function (k) { if (freq[k] > mf || (freq[k] === mf && +k > mode)) { mode = +k; mf = freq[k]; } });
+    var start = lim > 3 ? Math.floor(lim / 2) : Math.min(1, lim - 1), counts = [];
+    for (var j = start; j < lim; j++) if (nonEmptyCount(rows[j]) >= Math.ceil(mode * 0.5)) counts.push(numCount(rows[j]));
+    counts.sort(function (a, b) { return a - b; });
+    return { width: mode, profile: counts.length ? counts[Math.floor(counts.length / 2)] : 0 };
+  }
+  // cabeçalho = linha imediatamente antes do 1º bloco de dados (pula títulos; aceita anos como nomes de coluna)
+  function detectHeaderRow(rows) {
+    var sh = tableShape(rows), M = sh.width, lim = Math.min(rows.length, 30);
+    function full(r) { return nonEmptyCount(rows[r]) >= Math.ceil(M * 0.5); }
+    if (sh.profile >= 1) {
+      for (var s = 0; s < lim; s++) if (full(s) && numCount(rows[s]) >= Math.max(1, sh.profile * 0.5)) return s - 1;
+    }
+    for (var r = 0; r < lim; r++) if (full(r)) return r;
+    return 0;
+  }
+
+  // JSON: aceita lista de objetos ou objeto com lista; une as chaves de TODOS os registros e "achata" objetos aninhados
+  function parseJSONText(text) {
+    var data = JSON.parse(text), note = '';
+    if (!Array.isArray(data)) {
+      if (data && typeof data === 'object') {
+        var arrays = Object.keys(data).filter(function (k) { return Array.isArray(data[k]); });
+        if (arrays.length) {
+          arrays.sort(function (a, b) { return data[b].length - data[a].length; });
+          note = 'Registros lidos da lista "' + arrays[0] + '" dentro do objeto JSON.';
+          data = data[arrays[0]];
+        } else { data = [data]; note = 'O JSON é um único objeto; tratado como 1 registro.'; }
+      } else data = [data];
+    }
+    var keys = [], seen = {}, recs = [];
+    function flat(obj, prefix, out) {
+      Object.keys(obj).forEach(function (k) {
+        var v = obj[k], key = prefix ? prefix + '.' + k : k;
+        if (v && typeof v === 'object' && !Array.isArray(v)) flat(v, key, out);
+        else if (Array.isArray(v)) out[key] = v.every(function (x) { return x === null || typeof x !== 'object'; }) ? v.join(', ') : JSON.stringify(v);
+        else out[key] = v;
+      });
+      return out;
+    }
+    data.forEach(function (item) {
+      var o = (item && typeof item === 'object' && !Array.isArray(item)) ? flat(item, '', {}) : { valor: item };
+      Object.keys(o).forEach(function (k) { if (!seen[k]) { seen[k] = 1; keys.push(k); } });
+      recs.push(o);
+    });
+    var rows = [keys];
+    recs.forEach(function (o) { rows.push(keys.map(function (k) { return o[k] === undefined ? null : o[k]; })); });
+    return { rows: rows, note: note, nested: keys.some(function (k) { return k.indexOf('.') > 0; }) };
+  }
+
+  function cellToRaw(v) {
+    if (v === null || v === undefined) return null;
+    if (v instanceof Date) {
+      if (isNaN(v.getTime())) return null;
+      var s = v.getFullYear() + '-' + pad2(v.getMonth() + 1) + '-' + pad2(v.getDate());
+      if (v.getHours() || v.getMinutes() || v.getSeconds()) s += ' ' + pad2(v.getHours()) + ':' + pad2(v.getMinutes()) + ':' + pad2(v.getSeconds());
+      return s;
+    }
+    return v;
+  }
+
+  // Monta a tabela (colunas) a partir de linhas brutas e registra problemas estruturais
+  function buildTable(rows, headerOpt) {
+    var info = { blankRows: 0, headerRow: 0, extraRows: 0, shortRows: 0, renamedEmpty: [], renamedDup: [], extraCols: 0, noHeader: false };
+    var clean = [];
+    rows.forEach(function (r) { if (r.some(function (x) { return !isBlank(x); })) clean.push(r); else info.blankRows++; });
+    if (!clean.length) throw new Error('O arquivo está vazio (nenhuma linha com dados).');
+    var h = headerOpt === 'auto' || headerOpt === undefined ? detectHeaderRow(clean) : (headerOpt === 'none' ? -1 : +headerOpt);
+    if (h >= clean.length) h = 0;
+    info.headerRow = h; info.noHeader = h < 0;
+    var headers = h >= 0 ? clean[h].map(function (x) { return x === null || x === undefined ? '' : String(x).trim(); }) : [];
+    var data = clean.slice(h + 1);
+    if (!data.length) throw new Error('O arquivo só tem o cabeçalho (' + headers.length + ' colunas: ' + headers.slice(0, 8).join(', ') + '), sem linhas de dados.');
+    // rodapé (fonte, notas) e linha de total no fim da tabela
+    var sh = tableShape(clean), end = data.length;
+    info.footerRows = 0; info.totalRow = false;
+    if (headerOpt === 'auto' || headerOpt === undefined) {
+      while (end > 1) {
+        var fr = data[end - 1], fst = firstNonEmpty(fr);
+        var isNote = /^(fonte|notas?|obs|elabora|consulte|situa|\*)/i.test(fst);
+        var footer = (isBlank(fr[0]) || isNote) && (sh.profile >= 1 ? numCount(fr) === 0 : nonEmptyCount(fr) <= Math.max(1, sh.width * 0.3));
+        if (!footer) break;
+        end--;
+      }
+      info.footerRows = data.length - end; data = data.slice(0, end);
+      if (data.length > 2 && /^(total|totais|total geral|soma|subtotal)$/.test(normKey(firstNonEmpty(data[data.length - 1])))) { data.pop(); info.totalRow = true; }
+    }
+    var width = headers.length;
+    for (var i = 0; i < data.length; i++) if (data[i].length > width) width = data[i].length;
+    var nHead = headers.length;
+    if (width > nHead) {
+      info.extraCols = width - nHead;
+      for (var e = nHead; e < width; e++) headers.push('');
+    }
+    var cols = [];
+    for (var c = 0; c < width; c++) cols.push(new Array(data.length));
+    for (var r = 0; r < data.length; r++) {
+      var row = data[r];
+      if (h >= 0 && row.length > nHead && row.slice(nHead).some(function (x) { return !isBlank(x); })) info.extraRows++;
+      if (row.length < nHead) info.shortRows++;
+      for (var k = 0; k < width; k++) { var v = k < row.length ? cellToRaw(row[k]) : null; cols[k][r] = v; }
+    }
+    var emptyHeader = [], used = {}, names = [];
+    headers.forEach(function (nm, i) {
+      var empty = nm === '' || /^unnamed:?\s*\d*$/i.test(nm);
+      emptyHeader.push(empty);
+      var name = nm === '' ? (info.noHeader ? 'coluna_' + (i + 1) : (i >= nHead ? 'extra_' + (i - nHead + 1) : 'Unnamed: ' + i)) : nm;
+      if (nm === '' && !info.noHeader && i < nHead) info.renamedEmpty.push(name);
+      var base = name, k2 = 2;
+      while (used[name.toLowerCase()]) { name = base + '_' + k2++; }
+      if (name !== base) info.renamedDup.push(base + ' → ' + name);
+      used[name.toLowerCase()] = 1; names.push(name);
+    });
+    return { headers: names, emptyHeader: emptyHeader, raw: cols, n: data.length, info: info };
+  }
+
+  // Lê um arquivo (bytes) conforme as opções de leitura
+  function readFile(u8, fileName, ro, XLSXlib) {
+    ro = ro || {};
+    var ext = (fileName.split('.').pop() || '').toLowerCase();
+    var res = { format: '', encoding: '', delimiter: null, notes: [], sheets: null };
+    if (!u8 || !u8.length) throw new Error('O arquivo está vazio (0 bytes).');
+    var rows;
+    if (isZip(u8) || ext === 'xlsx' || ext === 'xls' || ext === 'ods') {
+      if (!XLSXlib) throw new Error('Planilha Excel detectada, mas o leitor de planilhas não carregou. Verifique a conexão e tente de novo.');
+      var wb = XLSXlib.read(u8, { type: 'array', cellDates: true });
+      res.sheets = wb.SheetNames.slice();
+      var sh = wb.SheetNames[Math.min(+ro.sheet || 0, wb.SheetNames.length - 1)];
+      rows = XLSXlib.utils.sheet_to_json(wb.Sheets[sh], { header: 1, raw: true, defval: null, blankrows: false });
+      res.format = 'Excel (' + (ext || 'xlsx').toUpperCase() + ') · planilha "' + sh + '"';
+      if (isZip(u8) && ext !== 'xlsx' && ext !== 'ods') res.notes.push('A extensão é .' + ext + ', mas o conteúdo é uma planilha Excel; lido como planilha.');
+    } else {
+      if (looksBinary(u8)) throw new Error('O arquivo parece ser binário (não é texto). Formatos aceitos: CSV, TSV, TXT, JSON, XLSX, XLS.');
+      var dec = decodeBytes(u8, ro.encoding || 'auto');
+      res.encoding = dec.encoding;
+      if (dec.autoFallback) res.notes.push('O arquivo não está em UTF-8; lido como Windows-1252 (Latin-1), padrão do Excel no Brasil. Acentos preservados.');
+      var text = dec.text;
+      if (!text.trim()) throw new Error('O arquivo está vazio (só espaços ou linhas em branco).');
+      var broken = (text.match(/�/g) || []).length;
+      if (broken) res.notes.push('O arquivo já chegou com ' + broken + ' caractere(s) corrompido(s) (�): ele foi salvo com a codificação errada antes de chegar aqui, e os acentos originais não podem ser recuperados. Renomeie as colunas afetadas se precisar.');
+      var t0 = text.replace(/^\s+/, '');
+      if (ext === 'json' || ext === 'jsonl' || ((t0[0] === '[' || t0[0] === '{') && ext !== 'csv' && ext !== 'tsv')) {
+        try {
+          var pj = parseJSONText(text);
+          rows = pj.rows; res.format = 'JSON';
+          if (pj.note) res.notes.push(pj.note);
+          if (pj.nested) res.notes.push('Objetos aninhados foram "achatados" em colunas com ponto (ex.: fornecedor.nome).');
+          var tb = buildTable(rows, 0);
+          tb.read = res; return tb;
+        } catch (e) {
+          if (ext === 'json') throw new Error('JSON inválido: ' + e.message);
+        }
+      }
+      var d = ro.delimiter && ro.delimiter !== 'auto' ? (ro.delimiter === 'tab' ? '\t' : ro.delimiter) : detectDelimiter(text, ext);
+      res.delimiter = d;
+      rows = d ? parseDelimited(text, d) : text.split(/\r\n|\n|\r/).map(function (l) { return [l]; });
+      res.format = ext === 'tsv' || ext === 'tab' ? 'TSV' : ext === 'txt' ? 'TXT' : 'CSV';
+      if (!d) res.notes.push('Nenhum delimitador encontrado: o arquivo foi lido como uma única coluna.');
+    }
+    var table = buildTable(rows, ro.header || 'auto');
+    table.read = res;
+    return table;
+  }
+
+  // ------------------------------------------------------------ números
+  var CUR_START = /^(?:r\$|us\$|u\$s|\$|€|£|¥|brl|usd|eur)\s*/i;
+  var CUR_END = /\s*(?:r\$|\$|€|£|brl|usd|eur|reais)$/i;
+  function grp(str, sep) { return new RegExp('^\\d{1,3}(\\' + sep + '\\d{3})+$').test(str); }
+  // devolve {n, plain, dec, unit, pct, cur} ou null se não for número
+  function parseNumber(v, locale) {
+    if (typeof v === 'number') return isFinite(v) ? { n: v, plain: true, dec: decOf(v) } : null;
+    if (typeof v !== 'string') return null;
+    var s = v.trim();
+    if (!s) return null;
+    if (/^-?\d+(\.\d+)?$/.test(s) && !(locale === 'pt' && grp(s, '.'))) return { n: parseFloat(s), plain: true, dec: (s.split('.')[1] || '').length };
+    var neg = false, cur = false, pct = false, unit = '';
+    if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1).trim(); }
+    if (s[0] === '-' || s[0] === '−') { neg = !neg; s = s.slice(1).trim(); } else if (s[0] === '+') s = s.slice(1).trim();
+    if (CUR_START.test(s)) { cur = true; s = s.replace(CUR_START, ''); }
+    if (s[0] === '-') { neg = !neg; s = s.slice(1).trim(); }
+    if (CUR_END.test(s)) { cur = true; s = s.replace(CUR_END, ''); }
+    if (s.slice(-1) === '%') { pct = true; s = s.slice(0, -1).trim(); }
+    var um = s.match(/^([\d.,\s]*\d)\s*([a-zA-ZÀ-ÿ]{1,12}\.?)$/);
+    if (um) { unit = um[2]; s = um[1]; }
+    s = s.replace(/[\s ]/g, '');
+    if (/^\d+(\.\d+)?e[+-]?\d+$/i.test(s)) return { n: (neg ? -1 : 1) * parseFloat(s), plain: false, dec: 0, unit: unit, pct: pct, cur: cur };
+    if (!/^[\d.,]+$/.test(s) || !/\d/.test(s)) return null;
+    var dots = (s.match(/\./g) || []).length, commas = (s.match(/,/g) || []).length, num, dec = 0;
+    if (dots && commas) {
+      var ld = s.lastIndexOf('.'), lc = s.lastIndexOf(',');
+      var ds = ld > lc ? '.' : ',', th = ds === '.' ? ',' : '.';
+      var ip = s.slice(0, s.lastIndexOf(ds)), fp = s.slice(s.lastIndexOf(ds) + 1);
+      if (!grp(ip, th) || /[.,]/.test(fp)) return null;
+      num = parseFloat(ip.split(th).join('') + '.' + fp); dec = fp.length;
+    } else if (commas) {
+      if (commas > 1) { if (!grp(s, ',')) return null; num = parseFloat(s.split(',').join('')); }
+      else if (locale === 'en' && grp(s, ',')) num = parseFloat(s.replace(',', ''));
+      else { num = parseFloat(s.replace(',', '.')); dec = s.split(',')[1].length; }
+    } else if (dots) {
+      if (dots > 1) { if (!grp(s, '.')) return null; num = parseFloat(s.split('.').join('')); }
+      else if (locale === 'pt' && grp(s, '.')) num = parseFloat(s.replace('.', ''));
+      else { num = parseFloat(s); dec = (s.split('.')[1] || '').length; }
+    } else num = parseFloat(s);
+    if (!isFinite(num)) return null;
+    return { n: neg ? -num : num, plain: false, dec: dec, unit: unit, pct: pct, cur: cur };
+  }
+  function decOf(n) { var s = String(n); var i = s.indexOf('.'); return i < 0 ? 0 : s.length - i - 1; }
+  function numberLocale(values) {
+    var pt = 0, en = 0, lim = Math.min(values.length, 5000);
+    for (var i = 0; i < lim; i++) {
+      var v = values[i]; if (typeof v !== 'string') continue;
+      var s = v.replace(CUR_START, '').replace(CUR_END, '').replace(/[\s%]/g, '');
+      var d = (s.match(/\./g) || []).length, c = (s.match(/,/g) || []).length;
+      if (d && c) { if (s.lastIndexOf(',') > s.lastIndexOf('.')) pt++; else en++; }
+      else if (c === 1 && /\d,\d+$/.test(s) && !/^\d{1,3},\d{3}$/.test(s)) pt++;
+      else if (d === 1 && /\d\.\d+$/.test(s) && !/^\d{1,3}\.\d{3}$/.test(s)) en++;
+      else if (d > 1 && grp(s, '.')) pt++;
+      else if (c > 1 && grp(s, ',')) en++;
+    }
+    return pt > en ? 'pt' : en > pt ? 'en' : null;
+  }
+
+  // -------------------------------------------------------------- datas
+  var DIM = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  function daysIn(y, m) { return m === 2 && ((y % 4 === 0 && y % 100 !== 0) || y % 400 === 0) ? 29 : DIM[m - 1]; }
+  function parseDate(v, pref) {
+    if (v === null || v === undefined || typeof v === 'number' || typeof v === 'boolean') return null;
+    var s = String(v).trim().toLowerCase(), m, y, mo, d, hh = null, mi = null, ss = null, fmt = '';
+    if ((m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})(?:[ t](\d{1,2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?\s*(?:z|[+-]\d{2}:?\d{2})?)?$/))) {
+      y = +m[1]; mo = +m[2]; d = +m[3]; hh = m[4]; mi = m[5]; ss = m[6]; fmt = 'iso';
+    } else if ((m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4}|\d{2})(?:[ t](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/))) {
+      var a = +m[1], b = +m[2]; y = +m[3]; if (m[3].length === 2) y += y < 50 ? 2000 : 1900;
+      var order = a > 12 ? 'dmy' : b > 12 ? 'mdy' : (pref || 'dmy');
+      if (order === 'dmy') { d = a; mo = b; } else { mo = a; d = b; }
+      hh = m[4]; mi = m[5]; ss = m[6]; fmt = a > 12 ? 'dmy!' : b > 12 ? 'mdy!' : 'amb';
+    } else if ((m = s.match(/^(\d{1,2})º?(?:\s+de)?[\s\-\/.]+([a-zç]{3,9})\.?(?:\s+de)?[\s\-\/.,]+(\d{4}|\d{2})$/))) {
+      d = +m[1]; mo = MONTHS[m[2]]; y = +m[3]; if (m[3].length === 2) y += y < 50 ? 2000 : 1900; fmt = 'txt';
+    } else if ((m = s.match(/^([a-zç]{3,9})\.?\s+(\d{1,2}),?\s+(\d{4})$/))) {
+      mo = MONTHS[m[1]]; d = +m[2]; y = +m[3]; fmt = 'txt';
+    } else return null;
+    if (!mo) return null;
+    var hasTime = hh !== undefined && hh !== null;
+    var valid = y >= 1800 && y <= 2200 && mo >= 1 && mo <= 12 && d >= 1 && d <= daysIn(y, mo) &&
+      (!hasTime || (+hh < 24 && +mi < 60 && (ss === undefined || ss === null || +ss < 60)));
+    return { valid: valid, y: y, mo: mo, d: d, hh: hasTime ? +hh : 0, mi: hasTime ? +mi : 0, ss: hasTime && ss ? +ss : 0, hasTime: hasTime, fmt: fmt };
+  }
+  function isoOf(p, withTime) {
+    var s = p.y + '-' + pad2(p.mo) + '-' + pad2(p.d);
+    return withTime ? s + ' ' + pad2(p.hh) + ':' + pad2(p.mi) + ':' + pad2(p.ss) : s;
+  }
+
+  // ------------------------------------------------------- estatística
+  function quantile(sorted, p) {
+    if (!sorted.length) return NaN;
+    var pos = (sorted.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos);
+    return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+  }
+  function numStats(nums) {
+    var n = nums.length; if (!n) return null;
+    var s = Float64Array.from(nums).sort();
+    var sum = 0; for (var i = 0; i < n; i++) sum += s[i];
+    var mean = sum / n, med = quantile(s, 0.5), v = 0;
+    for (var j = 0; j < n; j++) v += (s[j] - mean) * (s[j] - mean);
+    var sd = n > 1 ? Math.sqrt(v / (n - 1)) : 0;
+    var q1 = quantile(s, 0.25), q3 = quantile(s, 0.75), iqr = q3 - q1;
+    var bins = [], B = 16;
+    if (s[n - 1] > s[0]) { for (var b = 0; b < B; b++) bins.push(0); for (var k = 0; k < n; k++) bins[Math.min(B - 1, Math.floor((s[k] - s[0]) / (s[n - 1] - s[0]) * B))]++; }
+    return { n: n, min: s[0], max: s[n - 1], mean: mean, median: med, sd: sd, skew: sd > 0 ? 3 * (mean - med) / sd : 0,
+      q1: q1, q3: q3, iqr: iqr, lo: q1 - 1.5 * iqr, hi: q3 + 1.5 * iqr, bins: bins };
+  }
+  function nullsClustered(isNull) {
+    var n = isNull.length, n1 = 0; for (var i = 0; i < n; i++) if (isNull[i]) n1++;
+    if (n1 < 2 || n1 === n) return false;
+    var runs = 1; for (var j = 1; j < n; j++) if (isNull[j] !== isNull[j - 1]) runs++;
+    var expected = 2 * n1 * (n - n1) / n + 1;
+    return runs < expected * 0.65;
+  }
+  function topValues(vals, k) {
+    var m = new Map();
+    vals.forEach(function (v) { if (v !== null) { var key = String(v); m.set(key, (m.get(key) || 0) + 1); } });
+    return Array.from(m.entries()).sort(function (a, b) { return b[1] - a[1] || (a[0] < b[0] ? -1 : 1); }).slice(0, k).map(function (e) { return { v: e[0], n: e[1] }; });
+  }
+
+  // ---------------------------------------------------- tipo da coluna
+  function inferType(name, vals, nonNullIdx) {
+    var nn = nonNullIdx.length;
+    if (!nn) return { type: 'categoria', why: 'coluna sem valores' };
+    var tok = nameTokens(name), first = tok[0] || '', last = tok[tok.length - 1] || '';
+    var idName = !!(ID_FIRST[first] || ID_LAST[last] || /(^|_)id$/.test(tok.join('_')));
+    var sample = nonNullIdx.length > 20000 ? nonNullIdx.filter(function (_, i) { return i % Math.ceil(nonNullIdx.length / 20000) === 0; }) : nonNullIdx;
+    var sv = sample.map(function (i) { return vals[i]; });
+    var distinct = new Set(sv.map(String)).size, uniq = distinct / sv.length;
+    // booleano
+    var allBool = sv.every(function (v) { if (typeof v === 'boolean') return true; var k = normKey(v); return BOOL_T[k] || BOOL_F[k]; });
+    var only01 = sv.every(function (v) { return v === 0 || v === 1 || v === '0' || v === '1'; });
+    if (allBool && !only01) return { type: 'booleano', why: 'valores do tipo sim/não, verdadeiro/falso' };
+    // data
+    var dOk = 0, dTime = 0;
+    sv.forEach(function (v) { var p = parseDate(v); if (p) { dOk++; if (p.hasTime) dTime++; } });
+    if (dOk / sv.length >= 0.8) return { type: dTime / dOk >= 0.5 ? 'data_hora' : 'data', why: Math.round(dOk / sv.length * 100) + '% dos valores são datas' };
+    var tOk = sv.filter(function (v) { return /^\d{1,2}:\d{2}(:\d{2})?$/.test(String(v).trim()); }).length;
+    if (tOk / sv.length >= 0.8) return { type: 'hora', why: 'valores no formato HH:MM' };
+    // número
+    var loc = numberLocale(sv) || 'en', nOk = 0, lead0 = 0, digitsOnly = 0;
+    sv.forEach(function (v) {
+      if (parseNumber(v, loc)) nOk++;
+      var s = String(v).trim();
+      if (/^\d+$/.test(s)) { digitsOnly++; if (s.length > 1 && s[0] === '0') lead0++; }
+    });
+    if (nOk / sv.length >= 0.85) {
+      if ((idName && uniq >= 0.8) || (lead0 / sv.length >= 0.2 && digitsOnly / sv.length >= 0.9))
+        return { type: 'id', why: idName ? 'nome de código/identificador e valores quase todos distintos' : 'códigos com zeros à esquerda' };
+      return { type: 'numero', why: Math.round(nOk / sv.length * 100) + '% dos valores são números' };
+    }
+    if (sv.filter(function (v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v).trim()); }).length / sv.length >= 0.8) return { type: 'email', why: 'endereços de e-mail' };
+    if (idName && uniq >= 0.8) return { type: 'id', why: 'nome de código/identificador e valores quase todos distintos' };
+    if (FREE_TEXT.test(tok.join('_'))) return { type: 'texto', why: 'nome indica texto livre (observação, descrição...)' };
+    var avgLen = sv.reduce(function (a, v) { return a + String(v).length; }, 0) / sv.length;
+    if ((uniq >= 0.9 && sv.length >= 10) || avgLen > 40) return { type: 'texto', why: 'valores quase todos diferentes (texto livre)' };
+    return { type: 'categoria', why: distinct + ' categorias distintas' };
+  }
+
+  // --------------------------------------------- unificação de categorias
+  function buildCategoryMap(values, useAbbrev) {
+    var counts = new Map();
+    values.forEach(function (v) { if (v !== null) counts.set(v, (counts.get(v) || 0) + 1); });
+    var groups = new Map();
+    counts.forEach(function (n, v) { var k = normKey(v); if (!groups.has(k)) groups.set(k, []); groups.get(k).push({ v: v, n: n }); });
+    var canon = new Map();
+    groups.forEach(function (arr, k) {
+      arr.sort(function (a, b) {
+        return b.n - a.n || (/^[A-ZÀ-Ý]/.test(b.v) ? 1 : 0) - (/^[A-ZÀ-Ý]/.test(a.v) ? 1 : 0) || (a.v < b.v ? -1 : 1);
+      });
+      canon.set(k, arr[0].v);
+    });
+    var target = new Map(), keys = Array.from(groups.keys());
+    if (useAbbrev && keys.length <= 40) {
+      var STOPW = { de: 1, da: 1, do: 1, das: 1, dos: 1, e: 1 };
+      keys.forEach(function (k1) {
+        if (k1.length > 6 || ABBR_STOP[k1] || !/^[a-z]+$/.test(k1)) return;
+        // abreviação por prefixo de uma palavra: F, Fem -> Feminino; ALIM -> Alimentos
+        var longer = keys.filter(function (k2) { return k2 !== k1 && k2.indexOf(k1) === 0 && /^[a-z]+$/.test(k2) && k2.length >= k1.length + 2; });
+        if (longer.length) {
+          var longest = longer.reduce(function (a, b) { return b.length > a.length ? b : a; });
+          if (longer.every(function (k2) { return longest.indexOf(k2) === 0; })) { target.set(k1, longest); return; }
+        }
+        // sigla pelas iniciais: SP -> São Paulo, RJ -> Rio de Janeiro, RH -> Recursos Humanos
+        if (k1.length >= 2 && k1.length <= 4) {
+          var cand = keys.filter(function (k2) {
+            if (k2.indexOf(' ') < 0) return false;
+            var ini = k2.split(' ').filter(function (w) { return w && !STOPW[w]; }).map(function (w) { return w[0]; }).join('');
+            return ini === k1;
+          });
+          if (cand.length === 1) target.set(k1, cand[0]);
+        }
+      });
+    }
+    // estilo de escrita dominante na coluna (Título, MAIÚSCULAS ou minúsculas) aplicado a todas as categorias
+    function style(s) { if (!/[a-zà-ÿ]/i.test(s) || /^[^a-zà-ÿ]/i.test(s) || /^[A-ZÀ-Ý]{1,4}$/.test(s)) return 'x'; if (s === s.toUpperCase()) return 'U'; if (s === s.toLowerCase()) return 'l'; return /^[A-ZÀ-Ý]/.test(s) ? 'T' : 'x'; }
+    var sc = { U: 0, l: 0, T: 0, x: 0 }, tot = 0;
+    counts.forEach(function (n, v) { sc[style(v)] += n; tot += n; });
+    var dom = ['T', 'U', 'l'].sort(function (a, b) { return sc[b] - sc[a]; })[0];
+    if (sc[dom] / Math.max(1, tot - sc.x) < 0.5) dom = null;
+    function toStyle(s) {
+      var st = style(s); if (!dom || st === 'x' || st === dom) return s;
+      if (dom === 'U') return s.toUpperCase();
+      if (dom === 'l') return s.toLowerCase();
+      return s.toLowerCase().replace(/(^|\s)([a-zà-ÿ])/g, function (m, sp, ch, off) { var w = s.toLowerCase().slice(off + sp.length).split(/\s/)[0]; return sp + ((off > 0 && /^(de|da|do|das|dos|e)$/.test(w)) ? ch : ch.toUpperCase()); });
+    }
+    var map = new Map();
+    counts.forEach(function (n, v) {
+      var k = normKey(v), t = target.get(k) || k;
+      map.set(v, toStyle(canon.get(t)));
+    });
+    return map;
+  }
+
+  // ===================================================== PIPELINE
+  function defaultOptions() {
+    return { trim: true, unify: true, abbrev: true, dedup: true, dedupForce: false, dropIndex: true, dropEmptyCols: true, smartNulls: true,
+      snake: false, maxImputePct: 50, nullTokens: NULL_DEFAULT.join(', '), rules: [], bins: [], cols: {} };
+  }
+
+  function applyRule(s, r) {
+    var flags = r.caseSensitive ? 'g' : 'gi';
+    if (r.mode === 'exact') return (r.caseSensitive ? s === r.find : s.toLowerCase() === r.find.toLowerCase()) ? r.replace : s;
+    var re;
+    try { re = new RegExp(r.mode === 'regex' ? r.find : r.find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags); } catch (e) { return s; }
+    return s.replace(re, r.replace);
+  }
+
+  function run(table, opt) {
+    opt = opt || defaultOptions();
+    var W = table.headers.length, N = table.n, log = [], ov = opt.cols || {};
+    function L(col, msg, kind) { log.push({ col: col, msg: msg, kind: kind || 'info' }); }
+    var vals = table.raw.map(function (c) { return c.slice(); });
+    var flags = []; for (var f = 0; f < W; f++) flags.push(new Uint8Array(N)); // 1=formato, 2=padronizado, 4=inválido, 8=imputado, 16=outlier
+    var cols = table.headers.map(function (h, c) {
+      return { c: c, origName: h, name: h, dropped: false, dropReason: '', warnings: [], did: [], o: ov[c] || {} };
+    });
+    var defaultLocale = table.read && (table.read.delimiter === ';' || /1252/.test(table.read.encoding || '')) ? 'pt' : 'en';
+
+    // 1) estrutura: colunas vazias e coluna de índice exportada sem nome
+    cols.forEach(function (col, c) {
+      var v = vals[c], nonBlank = 0;
+      for (var r = 0; r < N; r++) if (!isBlank(v[r])) nonBlank++;
+      if (col.o.keep === true) return;
+      if (col.o.keep === false) { col.dropped = true; col.dropReason = 'Removida pelo usuário.'; return; }
+      if (opt.dropEmptyCols && nonBlank === 0) { col.dropped = true; col.dropReason = 'Coluna totalmente vazia: removida.'; L(col.name, 'coluna totalmente vazia removida'); return; }
+      if (opt.dropIndex && table.emptyHeader[c] && nonBlank === N) {
+        var ints = [], ok = true;
+        for (var i = 0; i < N && ok; i++) { var s = String(v[i]).trim(); if (!/^\d+$/.test(s)) ok = false; else ints.push(+s); }
+        if (ok) {
+          var mn = Math.min.apply(null, ints.slice(0, 50000)), mx = Math.max.apply(null, ints.slice(0, 50000));
+          var distinct = new Set(ints).size;
+          if (distinct / N >= 0.9 && Math.abs((mx - mn + 1) - N) <= Math.max(2, N * 0.15)) {
+            col.dropped = true; col.dropReason = 'Coluna de índice sem nome (0, 1, 2…), sobra de exportação do pandas: removida.';
+            L(col.name, 'coluna de índice sem nome removida (equivale a df.drop(columns=["' + col.name + '"]))');
+          }
+        }
+      }
+    });
+    var live = cols.filter(function (c) { return !c.dropped; });
+
+    // 2) substituições manuais (antes de tudo, como df.replace / df.loc)
+    (opt.rules || []).forEach(function (rule, ri) {
+      rule.count = 0;
+      if (!rule.find && rule.mode !== 'exact') return;
+      cols.forEach(function (col, c) {
+        if (col.dropped || (rule.col !== '*' && +rule.col !== c)) return;
+        var v = vals[c];
+        for (var r = 0; r < N; r++) {
+          if (v[r] === null || v[r] === undefined) continue;
+          var s = String(v[r]), out = applyRule(s, rule);
+          if (out !== s) { v[r] = out === '' ? null : out; flags[c][r] |= 2; rule.count++; }
+        }
+      });
+      if (rule.count) L(rule.col === '*' ? 'todas' : cols[+rule.col].name, 'regra ' + (ri + 1) + ' ("' + rule.find + '" → "' + rule.replace + '"): ' + rule.count + ' células');
+    });
+
+    // 3) limpeza de texto (str.strip, espaços duplicados, aspas simples envolventes)
+    live.forEach(function (col) {
+      var c = col.c, v = vals[c], n = 0;
+      if (!opt.trim) return;
+      for (var r = 0; r < N; r++) {
+        if (typeof v[r] !== 'string') continue;
+        var s = v[r].replace(/[   ]/g, ' ').replace(/[​-‍﻿]/g, '').replace(/\s+/g, ' ').trim();
+        if (s.length >= 2 && s[0] === "'" && s[s.length - 1] === "'") s = s.slice(1, -1).trim();
+        if (s !== v[r]) { v[r] = s; flags[c][r] |= 2; n++; }
+      }
+      col.trimmed = n;
+      if (n) col.did.push(n + ' textos com espaços/aspas extras limpos');
+    });
+
+    // 4) valores ausentes: marcadores configuráveis, com proteção para categorias legítimas
+    var tokens = {}; String(opt.nullTokens || '').split(',').forEach(function (t) { t = t.trim().toLowerCase(); if (t) tokens[t] = 1; });
+    live.forEach(function (col) {
+      var c = col.c, v = vals[c], found = {}, nonEmpty = 0;
+      for (var r = 0; r < N; r++) {
+        if (isBlank(v[r])) { v[r] = null; continue; }
+        nonEmpty++;
+        if (typeof v[r] === 'string') { var k = v[r].trim().toLowerCase(); if (tokens[k]) (found[k] = found[k] || []).push(r); }
+      }
+      // a coluna é "categórica"? (os demais valores não são números nem datas)
+      var others = [], step = Math.max(1, Math.floor(N / 3000));
+      for (var r2 = 0; r2 < N; r2 += step) if (v[r2] !== null && !(typeof v[r2] === 'string' && tokens[v[r2].trim().toLowerCase()])) others.push(v[r2]);
+      var numLike = others.filter(function (x) { return parseNumber(x, 'en') || parseNumber(x, 'pt'); }).length;
+      var dateLike = others.filter(function (x) { return parseDate(x); }).length;
+      var categorical = others.length > 0 && numLike / others.length < 0.5 && dateLike / others.length < 0.5;
+      col.keptTokens = [];
+      // "-" como zero (convenção DATASUS/IBGE) em coluna numérica sem zeros e sem outros ausentes
+      var dashRows = (found['-'] || []).concat(found['--'] || []);
+      var blanks = 0; for (var rb = 0; rb < N; rb++) if (v[rb] === null) blanks++;
+      var otherTok = Object.keys(found).filter(function (k) { return k !== '-' && k !== '--'; }).length;
+      var hasZero = others.some(function (x) { var p = parseNumber(x, 'en'); return p && p.n === 0; });
+      var dashZero = col.o.dashZero !== undefined ? col.o.dashZero && dashRows.length > 0
+        : (dashRows.length >= 2 && others.length > 0 && numLike / others.length >= 0.8 && !hasZero && !blanks && !otherTok);
+      if (dashZero) {
+        dashRows.forEach(function (r) { v[r] = 0; flags[c][r] |= 1; });
+        delete found['-']; delete found['--'];
+        col.dashZero = dashRows.length;
+        var dmsg = '"-" aparece ' + dashRows.length + ' vezes numa coluna numérica sem zeros: lido como 0 (convenção do DATASUS/IBGE para "zero")';
+        col.warnings.push(dmsg); L(col.name, dmsg, 'warn');
+      }
+      Object.keys(found).forEach(function (k) {
+        var rows = found[k], keep = false;
+        if (col.o.keepTokens === true && NULL_AMBIGUOUS[k]) keep = true;
+        else if (col.o.keepTokens === false) keep = false;
+        else if (opt.smartNulls && categorical && NULL_AMBIGUOUS[k] && rows.length >= 2 && rows.length / Math.max(1, nonEmpty) >= 0.05) keep = true;
+        if (keep) {
+          col.keptTokens.push(k);
+          var msg = '"' + vals[c][rows[0]] + '" aparece ' + rows.length + ' vezes (' + Math.round(rows.length / nonEmpty * 100) + '%) e foi mantido como categoria, não como valor ausente';
+          col.warnings.push(msg); L(col.name, msg, 'warn');
+        } else rows.forEach(function (r) { v[r] = null; });
+      });
+      var nul = 0; for (var r3 = 0; r3 < N; r3++) if (v[r3] === null) nul++;
+      col.nullsBefore = nul;
+    });
+
+    // 5) tipo de cada coluna + conversão (astype / pd.to_datetime)
+    live.forEach(function (col) {
+      var c = col.c, v = vals[c], fl = flags[c], idx = [];
+      for (var r = 0; r < N; r++) if (v[r] !== null) idx.push(r);
+      var inf = inferType(col.origName, v, idx);
+      col.autoType = inf.type; col.typeWhy = inf.why;
+      col.type = col.o.type || inf.type;
+      var t = col.type, invalid = [], fmtd = 0, notes = { unit: 0, pct: 0, cur: 0 };
+      if (t === 'numero') {
+        var loc = numberLocale(idx.map(function (i) { return v[i]; })) || defaultLocale;
+        col.locale = loc;
+        var maxDec = 0, allInt = true, units = {};
+        idx.forEach(function (r) {
+          var p = parseNumber(v[r], loc);
+          if (!p) { invalid.push(v[r]); v[r] = null; fl[r] |= 4; return; }
+          if (!p.plain) { fl[r] |= 1; fmtd++; }
+          if (p.unit) { notes.unit++; units[p.unit.toLowerCase()] = 1; }
+          if (p.pct) notes.pct++;
+          if (p.cur) notes.cur++;
+          v[r] = p.n; if (p.dec > maxDec) maxDec = p.dec; if (!Number.isInteger(p.n)) allInt = false;
+        });
+        col.decimals = allInt ? 0 : Math.min(Math.max(maxDec, 1), 4); col.isInt = allInt;
+        if (fmtd) col.did.push(fmtd + ' números convertidos para formato numérico' + (loc === 'pt' ? ' (vírgula decimal brasileira reconhecida)' : ''));
+        if (notes.cur) col.did.push(notes.cur + ' com símbolo de moeda removido');
+        if (notes.unit) col.did.push(notes.unit + ' com unidade removida (' + Object.keys(units).join(', ') + ')');
+        if (notes.pct) col.did.push(notes.pct + ' com "%" removido');
+      } else if (t === 'data' || t === 'data_hora') {
+        var dmy = 0, mdy = 0;
+        idx.forEach(function (r) { var p = parseDate(v[r]); if (p) { if (p.fmt === 'dmy!') dmy++; if (p.fmt === 'mdy!') mdy++; } });
+        var pref = mdy > dmy ? 'mdy' : 'dmy'; col.datePref = pref;
+        idx.forEach(function (r) {
+          var p = parseDate(v[r], pref);
+          if (!p || !p.valid) { invalid.push(v[r]); v[r] = null; fl[r] |= 4; return; }
+          var iso = isoOf(p, t === 'data_hora');
+          if (iso !== String(v[r]).trim()) { fl[r] |= 1; fmtd++; }
+          v[r] = iso;
+        });
+        if (fmtd) col.did.push(fmtd + ' datas convertidas para AAAA-MM-DD' + (t === 'data_hora' ? ' hh:mm:ss' : '') + (pref === 'dmy' ? ' (dia/mês)' : ' (mês/dia)'));
+      } else if (t === 'hora') {
+        idx.forEach(function (r) {
+          var m = String(v[r]).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+          if (!m || +m[1] > 23 || +m[2] > 59) { invalid.push(v[r]); v[r] = null; fl[r] |= 4; return; }
+          var s = pad2(+m[1]) + ':' + m[2] + (m[3] ? ':' + m[3] : '');
+          if (s !== v[r]) { fl[r] |= 1; fmtd++; } v[r] = s;
+        });
+        if (fmtd) col.did.push(fmtd + ' horas padronizadas para HH:MM');
+      } else if (t === 'booleano') {
+        idx.forEach(function (r) {
+          if (typeof v[r] === 'boolean') return;
+          var k = normKey(v[r]);
+          if (BOOL_T[k]) { if (v[r] !== 'True') { fl[r] |= 1; fmtd++; } v[r] = true; }
+          else if (BOOL_F[k]) { if (v[r] !== 'False') { fl[r] |= 1; fmtd++; } v[r] = false; }
+          else { invalid.push(v[r]); v[r] = null; fl[r] |= 4; }
+        });
+        if (fmtd) col.did.push(fmtd + ' valores unificados em True/False');
+      } else if (t === 'email') {
+        idx.forEach(function (r) { var s = String(v[r]).trim().toLowerCase(); if (s !== v[r]) { fl[r] |= 2; fmtd++; } v[r] = s; });
+        if (fmtd) col.did.push(fmtd + ' e-mails passados para minúsculas');
+      } else if (t === 'id') {
+        var allPlainInt = idx.every(function (r) { var s = String(v[r]).trim(); return /^[1-9]\d{0,14}$/.test(s) || s === '0'; });
+        idx.forEach(function (r) { v[r] = allPlainInt ? +String(v[r]).trim() : String(v[r]).trim(); });
+        if (!allPlainInt && idx.some(function (r) { return /^0\d/.test(v[r]); })) col.did.push('zeros à esquerda preservados (código guardado como texto)');
+      } else {
+        idx.forEach(function (r) { if (typeof v[r] !== 'string') v[r] = String(v[r]); });
+      }
+      if (invalid.length) {
+        var ex = invalid.slice(0, 4).map(function (x) { return '"' + x + '"'; }).join(', ');
+        var msg = invalid.length + ' valor(es) inválido(s) para ' + TYPE_LABEL[t] + ' viraram ausentes: ' + ex;
+        col.did.push(msg); L(col.name, msg, 'warn');
+      }
+      col.invalid = invalid.length;
+    });
+
+    // 6) padronização de categorias (str.lower/strip + dicionário de variações)
+    live.forEach(function (col) {
+      if (col.type !== 'categoria') return;
+      var c = col.c, v = vals[c], userMap = col.o.map || {};
+      var map = opt.unify ? buildCategoryMap(v, opt.abbrev) : new Map();
+      var variants = new Map(), n = 0;
+      for (var r = 0; r < N; r++) {
+        if (v[r] === null) continue;
+        var orig = v[r], to = Object.prototype.hasOwnProperty.call(userMap, orig) ? userMap[orig] : (map.get(orig) || orig);
+        var e = variants.get(orig); if (!e) { e = { from: orig, to: to, n: 0 }; variants.set(orig, e); } e.n++;
+        if (to !== orig) { v[r] = to === '' ? null : to; flags[c][r] |= 2; n++; }
+      }
+      col.variants = Array.from(variants.values()).sort(function (a, b) { return (a.to < b.to ? -1 : a.to > b.to ? 1 : b.n - a.n); });
+      var groups = {}; col.variants.forEach(function (x) { (groups[x.to] = groups[x.to] || []).push(x.from); });
+      var merged = Object.keys(groups).filter(function (k) { return groups[k].length > 1; });
+      if (n) {
+        var msg = n + ' valores padronizados: ' + merged.slice(0, 4).map(function (k) { return groups[k].join('/') + ' → ' + k; }).join('; ');
+        col.did.push(msg); L(col.name, msg);
+      }
+      col.standardized = n;
+      // depois de unificar, só sobraram valores do tipo sim/não? então é booleano
+      if (!col.o.type) {
+        var finals = Object.keys(groups).filter(function (k) { return k !== '' && k !== 'null'; });
+        var allB = finals.length > 0 && finals.every(function (k) { var nk = normKey(k); return BOOL_T[nk] || BOOL_F[nk]; });
+        var only01 = finals.every(function (k) { return k === '0' || k === '1'; });
+        if (allB && !only01) {
+          col.type = 'booleano'; col.autoType = 'booleano'; col.typeWhy = 'valores sim/não depois da padronização';
+          for (var rb = 0; rb < N; rb++) if (v[rb] !== null) { var kb = normKey(v[rb]); v[rb] = !!BOOL_T[kb]; flags[c][rb] |= 1; }
+          col.did.push('coluna reconhecida como booleana (True/False) depois da padronização');
+          delete col.variants;
+        }
+      }
+    });
+
+    // 7) validação de domínio: siglas de UF, idade 0–120, percentuais 0–100, valores não negativos e faixas do usuário
+    var UFS = { AC: 1, AL: 1, AP: 1, AM: 1, BA: 1, CE: 1, DF: 1, ES: 1, GO: 1, MA: 1, MT: 1, MS: 1, MG: 1, PA: 1, PB: 1, PR: 1, PE: 1, PI: 1, RJ: 1, RN: 1, RS: 1, RO: 1, RR: 1, SC: 1, SP: 1, SE: 1, TO: 1 };
+    live.forEach(function (col) {
+      if (col.type !== 'categoria' || nameTokens(col.origName).indexOf('uf') < 0) return;
+      var c = col.c, v = vals[c], ok = 0, tot = 0, bad = [];
+      for (var r = 0; r < N; r++) if (v[r] !== null) { tot++; if (UFS[String(v[r]).toUpperCase()]) ok++; }
+      if (!tot || ok / tot < 0.8) return;
+      for (var r2 = 0; r2 < N; r2++) if (v[r2] !== null && !UFS[String(v[r2]).toUpperCase()]) { bad.push(v[r2]); v[r2] = null; flags[c][r2] |= 4; }
+      if (bad.length) { var um = bad.length + ' sigla(s) de UF inexistente(s) viraram ausentes: ' + bad.slice(0, 4).join(', '); col.did.push(um); L(col.name, um, 'warn'); col.invalid = (col.invalid || 0) + bad.length; }
+    });
+    live.forEach(function (col) {
+      if (col.type !== 'numero') return;
+      var c = col.c, v = vals[c], tok = nameTokens(col.origName);
+      var min = col.o.min !== undefined && col.o.min !== '' ? +col.o.min : null, max = col.o.max !== undefined && col.o.max !== '' ? +col.o.max : null;
+      var auto = false, has = function (list) { return list.some(function (w) { return tok.indexOf(w) >= 0; }); };
+      if (min === null && max === null) {
+        if (has(['idade', 'age'])) { min = 0; max = 120; auto = true; }
+        else if (has(['umidade', 'humidity', 'perc', 'percentual', 'porcentagem', 'pct', 'percent'])) { min = 0; max = 100; auto = true; }
+        else if (has(['preco', 'quantidade', 'qtd', 'qtde', 'salario', 'venda', 'vendas', 'estoque', 'peso', 'altura', 'experiencia', 'dependentes'])) { min = 0; auto = true; }
+      }
+      if (min === null && max === null) return;
+      col.range = { min: min, max: max, auto: auto };
+      var bad = [];
+      for (var r = 0; r < N; r++) {
+        if (v[r] === null) continue;
+        if ((min !== null && v[r] < min) || (max !== null && v[r] > max)) { bad.push(v[r]); v[r] = null; flags[c][r] |= 4; }
+      }
+      if (bad.length) {
+        var msg = bad.length + ' valor(es) fora da faixa válida [' + (min === null ? '−∞' : min) + ', ' + (max === null ? '∞' : max) + '] viraram ausentes: ' + bad.slice(0, 4).join(', ');
+        col.did.push(msg); L(col.name, msg, 'warn'); col.invalid += bad.length;
+      }
+    });
+
+    // 8) duplicatas (depois da padronização: pega também as quase-duplicatas)
+    var keepRow = new Uint8Array(N); for (var r0 = 0; r0 < N; r0++) keepRow[r0] = 1;
+    var dupRemoved = 0, dedupSkipped = 0;
+    if (opt.dedup) {
+      var seen = new Set();
+      for (var r1 = 0; r1 < N; r1++) {
+        var key = live.map(function (col) { var x = vals[col.c][r1]; return x === null ? '\u0000' : typeof x + ':' + x; }).join('\u0001');
+        if (seen.has(key)) { keepRow[r1] = 0; dupRemoved++; } else seen.add(key);
+      }
+      if (dupRemoved && dupRemoved / N > 0.5 && !opt.dedupForce) {
+        // a maioria das linhas se repete: são registros legítimos (ex.: Titanic, dados por categoria), não erro
+        for (var r4 = 0; r4 < N; r4++) keepRow[r4] = 1;
+        dedupSkipped = dupRemoved; dupRemoved = 0;
+        L('linhas', dedupSkipped + ' de ' + N + ' linhas (' + Math.round(dedupSkipped / N * 100) + '%) são repetidas: como são a maioria e não há identificador, parecem registros legítimos (uma linha por pessoa/evento) e foram mantidas. Marque "Remover duplicatas mesmo quando forem a maioria" em Regras gerais para removê-las.', 'warn');
+      } else if (dupRemoved) L('linhas', dupRemoved + ' linha(s) duplicada(s) removida(s), comparando os valores já padronizados (df.drop_duplicates())');
+    }
+    // identificadores repetidos com dados diferentes
+    live.forEach(function (col) {
+      if (col.type !== 'id') return;
+      var seenId = new Map(), rep = 0;
+      for (var r5 = 0; r5 < N; r5++) { if (!keepRow[r5]) continue; var x = vals[col.c][r5]; if (x === null) continue; if (seenId.has(x)) rep++; else seenId.set(x, 1); }
+      if (rep) { var m = rep + ' identificador(es) repetido(s) em linhas com dados diferentes: verifique se são o mesmo registro'; col.warnings.push(m); L(col.name, m, 'warn'); }
+    });
+    function rowsAlive() { var a = []; for (var i = 0; i < N; i++) if (keepRow[i]) a.push(i); return a; }
+
+    // 9) outliers (regra 1,5·IQR) com tratamento escolhível
+    var outlierRemoved = 0;
+    live.forEach(function (col) {
+      if (col.type !== 'numero') return;
+      var c = col.c, v = vals[c], rows = rowsAlive(), nums = [];
+      rows.forEach(function (r) { if (v[r] !== null) nums.push(v[r]); });
+      var st = numStats(nums);
+      var distinct = new Set(nums).size;
+      col.binary = distinct <= 2 && (nums.every(function (x) { return x === 0 || x === 1; }) || nums.length >= 20);
+      if (!st || distinct < 5 || st.iqr === 0) { col.outliers = { count: 0 }; return; }
+      var out = rows.filter(function (r) { return v[r] !== null && (v[r] < st.lo || v[r] > st.hi); });
+      var action = col.o.outlier || 'keep';
+      col.outliers = { count: out.length, lo: st.lo, hi: st.hi, action: action };
+      if (!out.length) return;
+      if (action === 'cap') {
+        out.forEach(function (r) { v[r] = v[r] < st.lo ? round(st.lo, col.decimals) : round(st.hi, col.decimals); flags[col.c][r] |= 16; });
+        col.did.push(out.length + ' outlier(s) limitados aos limites IQR [' + fmtNum(st.lo) + '; ' + fmtNum(st.hi) + ']');
+      } else if (action === 'null') {
+        out.forEach(function (r) { v[r] = null; flags[col.c][r] |= 16 | 4; });
+        col.did.push(out.length + ' outlier(s) convertidos em ausentes (serão imputados)');
+      } else if (action === 'remove') {
+        out.forEach(function (r) { keepRow[r] = 0; outlierRemoved++; });
+        col.did.push(out.length + ' linha(s) com outlier removidas');
+      }
+      if (action !== 'keep') L(col.name, col.did[col.did.length - 1]);
+    });
+
+    // 10) valores ausentes: remover linhas (dropna) ou imputar (fillna)
+    var timeCol = null;
+    live.forEach(function (col) {
+      if (timeCol || (col.type !== 'data' && col.type !== 'data_hora')) return;
+      var rows = rowsAlive(), prev = null, inc = 0, pairs = 0, distinct = new Set();
+      rows.forEach(function (r) { var x = vals[col.c][r]; if (x === null) return; distinct.add(x); if (prev !== null) { pairs++; if (x >= prev) inc++; } prev = x; });
+      if (pairs >= 3 && distinct.size >= 2 && inc / pairs >= 0.95) timeCol = col;
+    });
+    var droppedNa = 0;
+    live.forEach(function (col) {
+      if ((col.o.strategy || '') !== 'drop') return;
+      var v = vals[col.c], n = 0;
+      for (var r = 0; r < N; r++) if (keepRow[r] && v[r] === null) { keepRow[r] = 0; n++; }
+      droppedNa += n; col.droppedRows = n;
+      if (n) { col.did.push(n + ' linha(s) sem valor removidas (dropna)'); L(col.name, n + ' linha(s) sem valor removidas (df.dropna(subset=["' + col.name + '"]))'); }
+    });
+    var alive = rowsAlive();
+    live.forEach(function (col) {
+      var c = col.c, v = vals[c], nNull = 0, isNull = [];
+      alive.forEach(function (r) { var z = v[r] === null; isNull.push(z); if (z) nNull++; });
+      col.nullsAlive = nNull;
+      var pct = alive.length ? nNull / alive.length * 100 : 0;
+      col.nullPct = pct; col.clustered = nullsClustered(isNull);
+      var t = col.type, nums = null, st = null;
+      if (t === 'numero') { nums = []; alive.forEach(function (r) { if (v[r] !== null) nums.push(v[r]); }); st = numStats(nums); }
+      // estratégia automática
+      var auto = 'none', reason = '';
+      if (!nNull) { auto = 'none'; reason = 'Sem valores ausentes.'; }
+      else if (t === 'id' || t === 'email' || t === 'texto') { reason = TYPE_LABEL[t] + ': um valor inventado seria falso; ausentes mantidos em branco.'; }
+      else if (t === 'data' || t === 'data_hora' || t === 'hora') { reason = 'Datas e horas não são inventadas; ausentes mantidos em branco (use forward/backward fill se fizer sentido).'; }
+      else if (pct > opt.maxImputePct) { reason = Math.round(pct) + '% de ausentes (acima de ' + opt.maxImputePct + '%): imputar distorceria a coluna; considere removê-la.'; col.warnings.push(reason); }
+      else if (t === 'numero' && st) {
+        if (col.binary) { auto = 'mode'; reason = 'Variável binária (2 valores) → moda.'; }
+        else if (timeCol && timeCol !== col && col.clustered) { auto = 'ffill'; reason = 'Nulos agrupados numa série ordenada por "' + timeCol.origName + '" → forward fill (repete a última leitura).'; }
+        else if (Math.abs(st.skew) > 0.5) { auto = 'median'; reason = 'Distribuição assimétrica (assimetria de Pearson = ' + st.skew.toFixed(2).replace('.', ',') + ') → mediana, robusta a outliers.'; }
+        else { auto = 'mean'; reason = 'Distribuição simétrica (assimetria de Pearson = ' + st.skew.toFixed(2).replace('.', ',') + ') → média.'; }
+      } else if (t === 'categoria' || t === 'booleano') { auto = 'mode'; reason = (t === 'booleano' ? 'Variável booleana' : 'Variável categórica') + ' → moda (valor mais frequente).'; }
+      col.autoStrategy = auto;
+      var strat = col.o.strategy && col.o.strategy !== 'auto' ? col.o.strategy : auto;
+      col.strategy = strat; col.reason = (strat === auto) ? reason : 'Escolhido manualmente. ' + (reason ? 'Sugestão automática: ' + reason : '');
+      col.imputed = 0; col.imputeValue = null;
+      if (!nNull || strat === 'none' || strat === 'drop') return;
+      var fill = null;
+      if (strat === 'mean' || strat === 'median') {
+        if (t !== 'numero' || !st) { col.reason += ' (média/mediana só valem para números)'; return; }
+        fill = strat === 'mean' ? st.mean : st.median;
+        fill = col.isInt ? Math.round(fill) : round(fill, col.decimals || 2);
+      } else if (strat === 'mode') {
+        var tv = topValues(alive.map(function (r) { return v[r]; }), 1);
+        if (!tv.length) return;
+        fill = t === 'numero' || (t === 'id' && typeof v[alive[0]] === 'number') ? +tv[0].v : t === 'booleano' ? tv[0].v === 'true' : tv[0].v;
+      } else if (strat === 'const') {
+        var cv = col.o.constant === undefined ? '' : String(col.o.constant);
+        if (t === 'numero') { var p = parseNumber(cv, col.locale); if (!p) { col.reason += ' (valor fixo inválido)'; return; } fill = p.n; }
+        else if (t === 'booleano') fill = !!BOOL_T[normKey(cv)];
+        else fill = cv;
+      }
+      if (strat === 'ffill' || strat === 'bfill') {
+        var order = strat === 'ffill' ? alive : alive.slice().reverse(), last = null, lead = [];
+        order.forEach(function (r) {
+          if (v[r] !== null && !(flags[c][r] & 8)) { last = v[r]; return; }
+          if (v[r] === null) { if (last === null) lead.push(r); else { v[r] = last; flags[c][r] |= 8; col.imputed++; } }
+        });
+        if (lead.length) { // completa as pontas com o sentido oposto
+          var next = null, rev = strat === 'ffill' ? alive : alive.slice().reverse();
+          for (var i2 = 0; i2 < rev.length; i2++) if (vals[c][rev[i2]] !== null) { next = vals[c][rev[i2]]; break; }
+          if (next !== null) lead.forEach(function (r) { v[r] = next; flags[c][r] |= 8; col.imputed++; });
+        }
+        col.imputeValue = strat === 'ffill' ? 'valor anterior' : 'valor seguinte';
+      } else {
+        alive.forEach(function (r) { if (v[r] === null) { v[r] = fill; flags[c][r] |= 8; col.imputed++; } });
+        col.imputeValue = fill;
+      }
+      if (col.imputed) {
+        var lbl = { mean: 'média', median: 'mediana', mode: 'moda', ffill: 'forward fill', bfill: 'backward fill', const: 'valor fixo' }[strat];
+        var shown = typeof fill === 'number' ? fmtNum(fill) : fill === true ? 'True' : fill === false ? 'False' : fill;
+        var msg = col.imputed + ' ausente(s) preenchido(s) por ' + lbl + (strat === 'ffill' || strat === 'bfill' ? '' : ' (' + shown + ')');
+        col.did.push(msg); L(col.name, msg);
+      }
+    });
+
+    // 11) faixas (pd.cut) — novas colunas
+    var derived = [];
+    (opt.bins || []).forEach(function (b) {
+      var src = cols[+b.col]; if (!src || src.dropped || src.type !== 'numero') { b.error = 'coluna de origem inválida'; return; }
+      var edges = b.edges, labels = b.labels;
+      var vals2 = new Array(N), cnt = 0;
+      for (var r = 0; r < N; r++) {
+        var x = vals[src.c][r]; vals2[r] = null;
+        if (x === null) continue;
+        for (var k = 0; k < edges.length - 1; k++) {
+          if ((x > edges[k] || (k === 0 && x === edges[0])) && x <= edges[k + 1]) { vals2[r] = labels[k]; cnt++; break; }
+        }
+      }
+      derived.push({ name: b.name, values: vals2, from: src });
+      L(b.name, 'nova coluna de faixas criada a partir de "' + src.origName + '" (pd.cut com limites ' + edges.join(', ') + '): ' + cnt + ' valores');
+    });
+
+    // 12) nomes das colunas (df.rename / df.columns)
+    var used = {};
+    var outCols = [];
+    live.forEach(function (col) {
+      var nm = (col.o.name && String(col.o.name).trim()) || (opt.snake ? snake(col.origName) : col.origName);
+      var base = nm, k = 2; while (used[nm.toLowerCase()]) nm = base + '_' + k++;
+      used[nm.toLowerCase()] = 1;
+      if (nm !== col.origName) L(col.origName, 'coluna renomeada para "' + nm + '"');
+      col.name = nm;
+      outCols.push({ name: nm, type: col.type, src: col, values: vals[col.c], flags: flags[col.c] });
+    });
+    derived.forEach(function (d) {
+      var nm = d.name || (d.from.name + '_faixa'), base = nm, k = 2; while (used[nm.toLowerCase()]) nm = base + '_' + k++;
+      used[nm.toLowerCase()] = 1;
+      outCols.push({ name: nm, type: 'categoria', src: null, derivedFrom: d.from, values: d.values, flags: null });
+    });
+
+    // linhas finais
+    var finalRows = rowsAlive();
+
+    // 13) estatísticas finais por coluna
+    live.forEach(function (col) {
+      var v = vals[col.c], nn = [], nul = 0;
+      finalRows.forEach(function (r) { if (v[r] === null) nul++; else nn.push(v[r]); });
+      col.nullsFinal = nul; col.nonNull = nn.length; col.distinct = new Set(nn.map(String)).size;
+      col.stats = col.type === 'numero' ? numStats(nn) : null;
+      col.top = col.type !== 'numero' ? topValues(nn, 5) : null;
+      col.formatted = 0; col.std2 = 0;
+      finalRows.forEach(function (r) { if (flags[col.c][r] & 1) col.formatted++; if (flags[col.c][r] & 2) col.std2++; });
+    });
+
+    // 14) qualidade em 4 dimensões (antes x depois)
+    var q = quality(table, cols, live, flags, vals, N, finalRows, dupRemoved, outCols);
+
+    var counts = {
+      rowsIn: N, rowsOut: finalRows.length, colsIn: W, colsOut: outCols.length, dupRemoved: dupRemoved, dedupSkipped: dedupSkipped,
+      droppedNa: droppedNa, outlierRemoved: outlierRemoved,
+      imputed: live.reduce(function (a, c) { return a + (c.imputed || 0); }, 0),
+      converted: live.reduce(function (a, c) { return a + c.formatted; }, 0),
+      standardized: live.reduce(function (a, c) { return a + c.std2; }, 0),
+      invalid: live.reduce(function (a, c) { return a + (c.invalid || 0); }, 0),
+      outliers: live.reduce(function (a, c) { return a + ((c.outliers && c.outliers.count) || 0); }, 0),
+      colsDropped: cols.filter(function (c) { return c.dropped; }).length
+    };
+    return { table: table, cols: cols, outCols: outCols, rows: finalRows, log: log, quality: q, counts: counts, timeCol: timeCol ? timeCol.origName : null, opt: opt };
+  }
+
+  function quality(table, cols, live, flags, vals, N, finalRows, dupRemoved, outCols) {
+    var cells = 0, nonNullB = 0, validB = 0, consB = 0;
+    live.forEach(function (col) {
+      var raw = table.raw[col.c], fl = flags[col.c];
+      for (var r = 0; r < N; r++) {
+        cells++;
+        var wasNull = isBlank(raw[r]) || (col.nullsBefore !== undefined && vals[col.c][r] === null && !(fl[r] & 4) && !(fl[r] & 8) && !(fl[r] & 16));
+        var nullish = isBlank(raw[r]) || (!(fl[r] & 4) && !(fl[r] & 16) && ((fl[r] & 8) || vals[col.c][r] === null));
+        if (nullish || wasNull) continue;
+        nonNullB++;
+        if (!(fl[r] & 4)) validB++;
+        if (!(fl[r] & 3)) consB++;
+      }
+    });
+    var b = {
+      completude: cells ? nonNullB / cells : 1,
+      validade: nonNullB ? validB / nonNullB : 1,
+      consistencia: nonNullB ? consB / nonNullB : 1,
+      unicidade: N ? 1 - dupRemoved / N : 1
+    };
+    var cellsA = 0, nnA = 0;
+    outCols.forEach(function (oc) { finalRows.forEach(function (r) { cellsA++; if (oc.values[r] !== null) nnA++; }); });
+    var a = { completude: cellsA ? nnA / cellsA : 1, validade: 1, consistencia: 1, unicidade: 1 };
+    function total(x) { return (x.completude + x.validade + x.consistencia + x.unicidade) / 4; }
+    b.total = total(b); a.total = total(a);
+    return { before: b, after: a };
+  }
+
+  // ------------------------------------------------------------ saída
+  function cellOut(v, type, dec) {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'boolean') return v ? 'True' : 'False';
+    if (typeof v === 'number') { var s = String(v); if (/e/.test(s)) s = v.toFixed(10).replace(/\.?0+$/, ''); return dec === ',' ? s.replace('.', ',') : s; }
+    return String(v);
+  }
+  function toCSV(res, o) {
+    o = o || {}; var sep = o.sep || ',', dec = o.dec || '.';
+    function q(s) { return (s.indexOf('"') >= 0 || s.indexOf(sep) >= 0 || /[\r\n]/.test(s) || /^\s|\s$/.test(s)) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+    var lines = [res.outCols.map(function (c) { return q(c.name); }).join(sep)];
+    res.rows.forEach(function (r) { lines.push(res.outCols.map(function (c) { return q(cellOut(c.values[r], c.type, dec)); }).join(sep)); });
+    return (o.bom ? '﻿' : '') + lines.join('\r\n') + '\r\n';
+  }
+  function toRecords(res) {
+    return res.rows.map(function (r) { var o = {}; res.outCols.forEach(function (c) { var v = c.values[r]; o[c.name] = v === undefined ? null : v; }); return o; });
+  }
+  function toJSON(res) { return JSON.stringify(toRecords(res), null, 2); }
+  function toAOA(res) {
+    var aoa = [res.outCols.map(function (c) { return c.name; })];
+    res.rows.forEach(function (r) {
+      aoa.push(res.outCols.map(function (c) {
+        var v = c.values[r];
+        if (v !== null && (c.type === 'data' || c.type === 'data_hora') && typeof v === 'string') {
+          var p = parseDate(v); if (p && p.valid) return new Date(p.y, p.mo - 1, p.d, p.hh, p.mi, p.ss);
+        }
+        return v === undefined ? null : v;
+      }));
+    });
+    return aoa;
+  }
+  function logText(res, fileName) {
+    var L = [];
+    L.push('LimpaDados — log de alterações');
+    L.push('Arquivo: ' + fileName);
+    L.push('Leitura: ' + res.table.read.format + (res.table.read.encoding ? ' · ' + res.table.read.encoding : '') + (res.table.read.delimiter ? ' · delimitador "' + (res.table.read.delimiter === '\t' ? 'TAB' : res.table.read.delimiter) + '"' : ''));
+    L.push('Linhas: ' + res.counts.rowsIn + ' → ' + res.counts.rowsOut + ' · Colunas: ' + res.counts.colsIn + ' → ' + res.counts.colsOut);
+    var qb = res.quality.before, qa = res.quality.after;
+    function p(x) { return Math.round(x * 1000) / 10 + '%'; }
+    L.push('Qualidade: ' + p(qb.total) + ' → ' + p(qa.total) + ' (completude ' + p(qb.completude) + ' → ' + p(qa.completude) + '; validade ' + p(qb.validade) + ' → ' + p(qa.validade) + '; consistência ' + p(qb.consistencia) + ' → ' + p(qa.consistencia) + '; unicidade ' + p(qb.unicidade) + ' → ' + p(qa.unicidade) + ')');
+    L.push('');
+    (res.table.read.notes || []).forEach(function (n) { L.push('[leitura] ' + n); });
+    res.cols.forEach(function (c) {
+      L.push('');
+      L.push('# ' + c.origName + (c.name !== c.origName && !c.dropped ? ' → ' + c.name : '') + (c.dropped ? ' (removida)' : ' [' + TYPE_LABEL[c.type] + ']'));
+      if (c.dropped) { L.push('  ' + c.dropReason); return; }
+      c.did.forEach(function (d) { L.push('  - ' + d); });
+      c.warnings.forEach(function (w) { if (c.did.indexOf(w) < 0) L.push('  ! ' + w); });
+      if (!c.did.length && !c.warnings.length) L.push('  - sem alterações');
+    });
+    L.push('');
+    L.push('# Linhas');
+    res.log.filter(function (e) { return e.col === 'linhas'; }).forEach(function (e) { L.push('  - ' + e.msg); });
+    return L.join('\r\n');
+  }
+
+  return { readFile: readFile, run: run, defaultOptions: defaultOptions, toCSV: toCSV, toJSON: toJSON, toAOA: toAOA, toRecords: toRecords,
+    logText: logText, parseNumber: parseNumber, parseDate: parseDate, parseDelimited: parseDelimited, TYPE_LABEL: TYPE_LABEL,
+    NULL_DEFAULT: NULL_DEFAULT, fmtNum: fmtNum, cellOut: cellOut, snake: snake };
+})();
+if (typeof module !== 'undefined') module.exports = Core;
+/*CORE-END*/
+</script>
+
+<script>
+// =====================================================================
+// INTERFACE
+// =====================================================================
+(function () {
+'use strict';
+var XLSX_URL = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+var SAMPLE = '"",Cod,Num,UF,Sexo,Idade,Dep,Num_conta,Temp_conta,Ativo,Saldo,Data_abertura,Possui_cartao,Email\n' +
+  '0,1,32,RS,F,28,20000,04590,0,True,$500.00,2023-01-15,1,ana@mail.com\n1,2,31, rs ,f,20,19000,04674,0,True,260.00,15/01/2023,0,  BIA@MAIL.COM\n' +
+  '2,3,34,Rs,Fem,32,10000,05545,0,true,500.00,01/15/2023,1,carla@mail.com\n3,4,35,RS,Feminino,,7000,05099,0,True,"R$ 1.500,00",15 jan 2023,,dani@mail.com\n' +
+  '4,5,36,SC,M,45,15000,05100,2,False,"1500,75",2023-02-10,1,edu@mail.com\n5,6,37,SC,m,NA,8000,,3,sim,"1,234.56",2023-02-11,0,fabio@mail.com\n' +
+  '6,7,38,PR,Masc,200,12000,05102,1,Não,900.00,2023/02/30,1,gui@mail.com\n7,8,39,PR,Masculino,-5,9000,05103,1,False,,2023-02-12,1,hugo@mail.com\n' +
+  '8,9,40,SP,NaN,32 anos,11000,05104,4,True,700.00,,1,ivo@mail.com\n9,10,41,SP,,51,13000,05105,5,,800.00,2023-02-14,0,joao@mail.com\n' +
+  '10,11,42,SP,F,29,-,05106,0,True,650.00,2023-02-15,1,kat@mail.com\n11,12,43,RJ,F,33,14000,05107,1,True,720.00,2023-02-16,1,leo@mail.com\n' +
+  '12,13,44,RJ,M,47,16000,05108,2,False,99999.00,2023-02-17,0,maria@mail.com\n13,14,45,RJ,M,38,17000,05109,3,True,880.00,2023-02-18,1,nina@mail.com\n' +
+  '11,12,43,RJ,F,33,14000,05107,1,True,720.00,2023-02-16,1,leo@mail.com\n14,15,46,MG,F,26,18000,05110,0,True,910.00,2023-02-19,1,otto@mail.com\n' +
+  '14,15,46,MG,F,26,18000,05110,0,True,910.00,2023-02-19,1,otto@mail.com\n15,15,46, mg ,f,26,18000,05110,0,true,910.00,2023-02-19,1,OTTO@mail.com\n' +
+  '16,16,47,MG,M,?,21000,05111,1,True,1020.00,2023-02-20,1,paulo@mail.com\n17,17,48,BA,F,61,22000,05112,2,True,1100.00,2023-02-21,0,quel@mail.com\n' +
+  '18,18,49,BA,M,55,23000,05113,3,False,1200.00,2023-02-22,1,rui@mail.com\n19,19,50,BA,F,58,24000,05114,4,True,1300.00,2023-02-23,1,sara@mail.com\n';
+
+var S = { step: 1, file: null, bytes: null, ro: { encoding: 'auto', delimiter: 'auto', header: 'auto', sheet: 0 },
+  table: null, opts: Core.defaultOptions(), res: null, tab: 'colunas', view: 'tratado', page: 0, error: '', colFilter: '',
+  csv: { sep: ',', dec: '.', bom: true } };
+var app = document.getElementById('app');
+
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function pct(x) { return (Math.round(x * 1000) / 10).toLocaleString('pt-BR') + '%'; }
+function busy(on) { document.getElementById('busy').classList.toggle('on', on); }
+var xlsxPromise = null;
+function loadXLSX() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxPromise) xlsxPromise = new Promise(function (ok, fail) {
+    var s = document.createElement('script'); s.src = XLSX_URL; s.onload = function () { ok(window.XLSX); };
+    s.onerror = function () { xlsxPromise = null; fail(new Error('Não foi possível carregar o leitor de planilhas (verifique a internet).')); };
+    document.head.appendChild(s);
+  });
+  return xlsxPromise;
+}
+function needsXLSX(name, u8) { var e = name.split('.').pop().toLowerCase(); return e === 'xlsx' || e === 'xls' || e === 'ods' || (u8.length > 4 && u8[0] === 0x50 && u8[1] === 0x4B); }
+
+// ------------------------------------------------------------ fluxo
+function openFile(name, u8) {
+  S.error = ''; S.file = { name: name, size: u8.length }; S.bytes = u8;
+  S.ro = { encoding: 'auto', delimiter: 'auto', header: 'auto', sheet: 0 };
+  S.opts = Core.defaultOptions(); S.page = 0; S.tab = 'colunas';
+  parseAndRun();
+}
+function parseAndRun() {
+  busy(true);
+  var go = function (lib) {
+    setTimeout(function () {
+      try {
+        S.table = Core.readFile(S.bytes, S.file.name, S.ro, lib);
+        S.opts.cols = {}; S.opts.rules = []; S.opts.bins = [];
+        S.res = Core.run(S.table, S.opts);
+        S.step = 2; S.error = ''; window.scrollTo(0, 0);
+      } catch (e) {
+        S.error = e.message || String(e); S.step = 1; S.table = null; S.res = null;
+      }
+      busy(false); render();
+    }, 20);
+  };
+  if (needsXLSX(S.file.name, S.bytes)) loadXLSX().then(go, function (e) { busy(false); S.error = e.message; S.step = 1; render(); });
+  else go(null);
+}
+var rerunTimer = null;
+function rerun() {
+  clearTimeout(rerunTimer);
+  busy(true);
+  rerunTimer = setTimeout(function () {
+    try { S.res = Core.run(S.table, S.opts); S.error = ''; } catch (e) { S.error = 'Erro no processamento: ' + e.message; }
+    busy(false); render();
+  }, 30);
+}
+function colOv(c) { return S.opts.cols[c] || (S.opts.cols[c] = {}); }
+
+// ------------------------------------------------------------ render
+function render() {
+  renderSteps();
+  if (S.step === 1 || !S.res) app.innerHTML = viewLoad();
+  else if (S.step === 2) app.innerHTML = viewTreat();
+  else app.innerHTML = viewExport();
+}
+function renderSteps() {
+  var names = ['Carregar', 'Tratar', 'Exportar'];
+  document.getElementById('steps').innerHTML = names.map(function (n, i) {
+    var st = i + 1, dis = st > 1 && !S.res;
+    return '<button data-act="step" data-v="' + st + '"' + (S.step === st ? ' aria-current="step"' : '') + (dis ? ' disabled' : '') + '>' + st + ' · ' + n + '</button>';
+  }).join('');
+  document.getElementById('topActions').innerHTML = S.res ? '<button class="btn small" data-act="newfile">Trocar arquivo</button>' : '';
+}
+
+function viewLoad() {
+  return '' +
+    (S.error ? '<div class="err" role="alert"><b>Não foi possível usar este arquivo.</b>\n' + esc(S.error) + '</div>' : '') +
+    '<div class="drop" id="drop" tabindex="0" role="button" aria-label="Selecionar arquivo">' +
+    '<h1>Arraste um arquivo ou clique para selecionar</h1>' +
+    '<div class="formats">.csv · .tsv · .txt · .json · .xlsx · .xls</div>' +
+    '<p class="muted small">O arquivo é lido só no seu navegador.</p>' +
+    '<input type="file" id="fileInput" hidden accept=".csv,.tsv,.tab,.txt,.json,.xlsx,.xls,.ods,text/csv,application/json">' +
+    '<button class="btn" data-act="sample" type="button">Experimentar com um arquivo de exemplo</button></div>' +
+    '<ul class="features">' +
+    '<li><b>Leitura robusta</b>Aspas, quebras de linha no campo, UTF-8 ou Latin-1, delimitador e cabeçalho detectados (e ajustáveis).</li>' +
+    '<li><b>Tipos e conversão</b>Números (R$, 1.234,56, 1,234.56), datas em vários formatos → AAAA-MM-DD, booleanos.</li>' +
+    '<li><b>Padronização</b>Espaços, maiúsculas, acentos e abreviações: F/f/Fem → Feminino.</li>' +
+    '<li><b>Nulos inteligentes</b>"none" ou "NA" frequentes ficam como categoria; códigos e textos não são inventados.</li>' +
+    '<li><b>Duplicatas e outliers</b>Remove quase-duplicatas; outliers podem ser mantidos, limitados, anulados ou removidos.</li>' +
+    '<li><b>Exportação</b>CSV (vírgula ou ponto e vírgula, pronto para o Excel), Excel, JSON tipado e log.</li></ul>';
+}
+
+function qualityBlock(q) {
+  var dims = [['completude', 'Completude'], ['validade', 'Validade'], ['consistencia', 'Consistência'], ['unicidade', 'Unicidade']];
+  return '<div class="panel"><h2>Qualidade dos dados</h2><div class="quality">' +
+    '<div class="score"><div><div class="muted small">Antes</div><div class="big">' + pct(q.before.total) + '</div></div><div class="arrow">→</div>' +
+    '<div><div class="muted small">Depois</div><div class="big" style="color:var(--good)">' + pct(q.after.total) + '</div></div></div>' +
+    '<div class="dims">' + dims.map(function (d) {
+      var b = q.before[d[0]], a = q.after[d[0]];
+      return '<div class="dim"><span>' + d[1] + '</span><div class="bar" title="cinza: antes · verde: depois"><i class="b" style="width:' + (b * 100) + '%"></i><i class="a" style="width:' + (a * 100) + '%"></i></div><span class="small">' + pct(b) + ' → <b>' + pct(a) + '</b></span></div>';
+    }).join('') + '<p class="muted small" style="margin:0">Completude = células preenchidas · Validade = valores compatíveis com o tipo · Consistência = valores já no formato padrão · Unicidade = linhas não duplicadas.</p></div></div></div>';
+}
+
+function viewTreat() {
+  var r = S.res, t = S.table, rd = t.read, c = r.counts;
+  var delimName = rd.delimiter === '\t' ? 'TAB' : rd.delimiter;
+  var h = '';
+  if (S.error) h += '<div class="err">' + esc(S.error) + '</div>';
+  h += '<div class="panel"><div class="filebar"><span class="name">' + esc(S.file.name) + '</span>' +
+    '<span class="kv">Formato <b>' + esc(rd.format) + '</b></span>' +
+    (rd.encoding ? '<span class="kv">Codificação <b>' + esc(rd.encoding) + '</b></span>' : '') +
+    (rd.delimiter ? '<span class="kv">Delimitador <b>' + esc(delimName) + '</b></span>' : '') +
+    '<span class="kv">Cabeçalho <b>' + (t.info.noHeader ? 'nenhum' : 'linha ' + (t.info.headerRow + 1)) + '</b></span>' +
+    '<span class="kv"><b>' + c.rowsIn.toLocaleString('pt-BR') + '</b> linhas × <b>' + c.colsIn + '</b> colunas</span></div>' +
+    '<details style="margin-top:8px"><summary class="small" style="cursor:pointer;color:var(--accent)">Opções de leitura</summary><div class="readopts">' +
+    (rd.sheets ? '<label>Planilha<select data-ch="ro" data-k="sheet">' + rd.sheets.map(function (s, i) { return '<option value="' + i + '"' + (+S.ro.sheet === i ? ' selected' : '') + '>' + esc(s) + '</option>'; }).join('') + '</select></label>' : '') +
+    (!rd.sheets && rd.format !== 'JSON' ? '<label>Codificação<select data-ch="ro" data-k="encoding">' + [['auto', 'Automática'], ['utf-8', 'UTF-8'], ['windows-1252', 'Windows-1252 (Latin-1)']].map(function (o) { return '<option value="' + o[0] + '"' + (S.ro.encoding === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' +
+      '<label>Delimitador<select data-ch="ro" data-k="delimiter">' + [['auto', 'Automático'], [',', 'Vírgula ,'], [';', 'Ponto e vírgula ;'], ['tab', 'TAB'], ['|', 'Barra |']].map(function (o) { return '<option value="' + esc(o[0]) + '"' + (S.ro.delimiter === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' : '') +
+    (rd.format !== 'JSON' ? '<label>Linha do cabeçalho<select data-ch="ro" data-k="header"><option value="auto"' + (S.ro.header === 'auto' ? ' selected' : '') + '>Automática</option><option value="none"' + (S.ro.header === 'none' ? ' selected' : '') + '>Sem cabeçalho</option>' +
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(function (i) { return '<option value="' + i + '"' + (S.ro.header === String(i) ? ' selected' : '') + '>Linha ' + (i + 1) + '</option>'; }).join('') + '</select></label>' : '') +
+    '</div></details></div>';
+
+  h += qualityBlock(r.quality);
+  h += '<div class="panel counters">' + [
+    [c.rowsIn.toLocaleString('pt-BR') + ' → ' + c.rowsOut.toLocaleString('pt-BR'), 'linhas'],
+    [c.dupRemoved, 'duplicatas removidas'], [c.imputed, 'ausentes preenchidos'], [c.converted, 'valores convertidos'],
+    [c.standardized, 'valores padronizados'], [c.invalid, 'inválidos → ausentes'], [c.outliers, 'outliers detectados'], [c.colsDropped, 'colunas removidas']
+  ].map(function (x) { return '<div class="counter"><div class="n">' + (typeof x[0] === 'number' ? x[0].toLocaleString('pt-BR') : x[0]) + '</div><div class="l">' + x[1] + '</div></div>'; }).join('') + '</div>';
+
+  // alertas de leitura e avisos
+  var alerts = [];
+  (rd.notes || []).forEach(function (n) { alerts.push(['info', n]); });
+  var inf = t.info;
+  if (inf.headerRow > 0) alerts.push(['warn', inf.headerRow + ' linha(s) de título antes do cabeçalho foram ignoradas (cabeçalho na linha ' + (inf.headerRow + 1) + ').']);
+  if (inf.noHeader) alerts.push(['warn', 'A primeira linha parece ser dado, não cabeçalho: colunas nomeadas coluna_1, coluna_2…']);
+  if (inf.renamedDup.length) alerts.push(['warn', 'Colunas com nome repetido foram renomeadas para não perder dados: ' + inf.renamedDup.join('; ') + '.']);
+  if (inf.extraRows) alerts.push(['warn', inf.extraRows + ' linha(s) têm mais campos que o cabeçalho; os valores extras foram mantidos em colunas "extra_".']);
+  if (inf.shortRows) alerts.push(['info', inf.shortRows + ' linha(s) têm menos campos que o cabeçalho; os campos faltantes ficaram como ausentes.']);
+  if (inf.blankRows) alerts.push(['info', inf.blankRows + ' linha(s) em branco ignoradas.']);
+  if (inf.footerRows) alerts.push(['warn', inf.footerRows + ' linha(s) de rodapé (fonte, notas) no fim do arquivo foram ignoradas.']);
+  if (inf.totalRow) alerts.push(['warn', 'A última linha era um "Total" (soma das demais) e foi removida para não distorcer as estatísticas.']);
+  r.log.filter(function (e) { return e.col === 'linhas' && e.kind === 'warn'; }).forEach(function (e) { alerts.push(['warn', e.msg]); });
+  if (r.timeCol) alerts.push(['info', 'Série temporal detectada (ordenada por "' + r.timeCol + '"): forward/backward fill disponível e usado onde os nulos estão agrupados.']);
+  r.cols.forEach(function (col) { col.warnings.forEach(function (w) { alerts.push(['warn', '<b>' + esc(col.origName) + '</b>: ' + esc(w)]); }); });
+  if (alerts.length) h += '<div class="panel"><h2>Avisos</h2><ul class="alerts">' + alerts.map(function (a) { return '<li class="' + a[0] + '">' + (a[1].indexOf('<b>') === 0 ? a[1] : esc(a[1])) + '</li>'; }).join('') + '</ul></div>';
+
+  var tabs = [['colunas', 'Colunas (' + r.cols.length + ')'], ['geral', 'Regras gerais'], ['subst', 'Substituições (' + S.opts.rules.length + ')'], ['faixas', 'Faixas (' + S.opts.bins.length + ')'], ['log', 'Log']];
+  h += '<div class="panel"><div class="tabs" role="tablist">' + tabs.map(function (x) { return '<button role="tab" data-act="tab" data-v="' + x[0] + '" aria-selected="' + (S.tab === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
+  if (S.tab === 'colunas') h += viewCols();
+  else if (S.tab === 'geral') h += viewGeneral();
+  else if (S.tab === 'subst') h += viewRules();
+  else if (S.tab === 'faixas') h += viewBins();
+  else h += viewLog();
+  h += '</div><div class="row-actions"><button class="btn" data-act="newfile">← Trocar arquivo</button><button class="btn primary" data-act="step" data-v="3">Continuar para exportação →</button></div>';
+  return h;
+}
+
+function viewCols() {
+  var r = S.res;
+  var list = r.cols.filter(function (c) { return !S.colFilter || c.origName.toLowerCase().indexOf(S.colFilter.toLowerCase()) >= 0; });
+  return '<div class="ctl" style="margin-bottom:10px"><input type="text" placeholder="Buscar coluna…" data-ch="colfilter" value="' + esc(S.colFilter) + '" aria-label="Buscar coluna"><span class="muted small">Mudanças são aplicadas na hora. Os valores entre parênteses são a escolha automática.</span></div>' +
+    '<div class="colgrid">' + list.map(colCard).join('') + '</div>';
+}
+function colCard(col) {
+  var c = col.c, o = S.opts.cols[c] || {}, L = Core.TYPE_LABEL, F = Core.fmtNum;
+  var h = '<article class="card' + (col.dropped ? ' dropped' : '') + '"><div class="head">' +
+    '<input type="text" data-ch="name" data-c="' + c + '" value="' + esc(col.dropped ? col.origName : col.name) + '" aria-label="Nome da coluna ' + esc(col.origName) + '"' + (col.dropped ? ' disabled' : '') + '>' +
+    '<label class="small"><input type="checkbox" data-ch="keep" data-c="' + c + '"' + (col.dropped ? '' : ' checked') + '> manter</label></div>';
+  if (col.dropped) return h + '<p class="reason">' + esc(col.dropReason) + '</p></article>';
+  h += '<div class="ctl"><label>Tipo <select data-ch="type" data-c="' + c + '"><option value="">Auto (' + L[col.autoType] + ')</option>' +
+    Object.keys(L).map(function (k) { return '<option value="' + k + '"' + (o.type === k ? ' selected' : '') + '>' + L[k] + '</option>'; }).join('') + '</select></label>' +
+    (col.name !== col.origName ? '<span class="badge">era "' + esc(col.origName) + '"</span>' : '') + '</div>';
+  h += '<p class="reason">' + esc(col.typeWhy || '') + '</p>';
+  var nb = col.nullsBefore || 0, n = S.res.counts.rowsIn;
+  h += '<div class="small">Ausentes: <b>' + nb + '</b> de ' + n + ' (' + Math.round(nb / Math.max(1, n) * 100) + '%)' + (col.clustered && col.nullsAlive ? ' <span class="badge warn">agrupados</span>' : '') + (col.nullsFinal ? ' · restam <b>' + col.nullsFinal + '</b>' : nb ? ' · <span class="badge good">resolvidos</span>' : '') + '</div>';
+  if (col.type === 'numero' && col.stats) {
+    var s = col.stats;
+    h += '<div class="hist" aria-hidden="true">' + (s.bins || []).map(function (b) { var m = Math.max.apply(null, s.bins); return '<i style="height:' + (b / m * 100) + '%"></i>'; }).join('') + '</div>';
+    h += '<div class="stats"><div><span>mín</span>' + F(s.min) + '</div><div><span>máx</span>' + F(s.max) + '</div><div><span>média</span>' + F(s.mean) + '</div>' +
+      '<div><span>mediana</span>' + F(s.median) + '</div><div><span>desvio</span>' + F(s.sd) + '</div><div><span>assim.</span>' + s.skew.toFixed(2).replace('.', ',') + '</div></div>';
+  } else if (col.top && col.top.length) {
+    h += '<div class="top">' + col.top.slice(0, 4).map(function (t) { return '<div><span>' + esc(t.v) + '</span><span class="muted">' + t.n + '</span></div>'; }).join('') + '<div class="muted"><span>' + col.distinct + ' valores distintos</span></div></div>';
+  }
+  if (col.did.length) h += '<ul class="did">' + col.did.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>';
+  // ausentes
+  var stratNames = { auto: 'Automático', mean: 'Média', median: 'Mediana', mode: 'Moda', ffill: 'Forward fill (anterior)', bfill: 'Backward fill (seguinte)', const: 'Valor fixo', drop: 'Remover linhas', none: 'Manter em branco' };
+  var avail = col.type === 'numero' ? ['auto', 'mean', 'median', 'mode', 'ffill', 'bfill', 'const', 'drop', 'none'] : ['auto', 'mode', 'ffill', 'bfill', 'const', 'drop', 'none'];
+  var autoName = { mean: 'Média', median: 'Mediana', mode: 'Moda', ffill: 'Forward fill', none: 'Manter' }[col.autoStrategy] || col.autoStrategy;
+  if (nb || o.strategy) {
+    h += '<div class="ctl"><label>Ausentes <select data-ch="strategy" data-c="' + c + '">' + avail.map(function (k) { return '<option value="' + k + '"' + ((o.strategy || 'auto') === k ? ' selected' : '') + '>' + (k === 'auto' ? 'Automático (' + autoName + ')' : stratNames[k]) + '</option>'; }).join('') + '</select></label>' +
+      (o.strategy === 'const' ? '<input type="text" data-ch="constant" data-c="' + c + '" value="' + esc(o.constant || '') + '" placeholder="valor" style="width:110px">' : '') + '</div>';
+    h += '<p class="reason">' + esc(col.reason || '') + '</p>';
+  }
+  if (col.type === 'numero') {
+    var oc = col.outliers || { count: 0 };
+    h += '<div class="ctl"><label>Outliers' + (oc.count ? ' <span class="badge warn">' + oc.count + '</span>' : '') + ' <select data-ch="outlier" data-c="' + c + '">' +
+      [['keep', 'Manter e sinalizar'], ['cap', 'Limitar aos limites IQR'], ['null', 'Converter em ausente'], ['remove', 'Remover linhas']].map(function (x) { return '<option value="' + x[0] + '"' + ((o.outlier || 'keep') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label></div>';
+    if (oc.count) h += '<p class="reason">Limites IQR: ' + F(oc.lo) + ' a ' + F(oc.hi) + '.</p>';
+    h += '<div class="ctl"><span>Faixa válida</span><input type="number" step="any" data-ch="min" data-c="' + c + '" value="' + esc(o.min !== undefined ? o.min : '') + '" placeholder="' + (col.range && col.range.auto ? col.range.min : 'mín') + '" style="width:80px" aria-label="mínimo válido"><input type="number" step="any" data-ch="max" data-c="' + c + '" value="' + esc(o.max !== undefined ? o.max : '') + '" placeholder="' + (col.range && col.range.auto ? col.range.max : 'máx') + '" style="width:80px" aria-label="máximo válido">' + (col.range && col.range.auto ? '<span class="muted small">(0–120 automático para idade)</span>' : '') + '</div>';
+  }
+  if (col.dashZero || o.dashZero !== undefined) {
+    h += '<div class="ctl"><label><input type="checkbox" data-ch="dashZero" data-c="' + c + '"' + (col.dashZero ? ' checked' : '') + '> ler "-" como zero</label></div>';
+  }
+  if (col.keptTokens && col.keptTokens.length || o.keepTokens !== undefined) {
+    h += '<div class="ctl"><label><input type="checkbox" data-ch="keepTokens" data-c="' + c + '"' + (col.keptTokens && col.keptTokens.length ? ' checked' : '') + '> tratar "' + esc((col.keptTokens || []).join('", "') || 'none/NA') + '" como categoria</label></div>';
+  }
+  if (col.type === 'categoria' && col.variants && col.variants.length && col.variants.length <= 60) {
+    var changed = col.variants.filter(function (v) { return v.from !== v.to; }).length;
+    h += '<details class="map"><summary>Mapa de categorias (' + col.variants.length + ' grafias' + (changed ? ', ' + changed + ' unificadas' : '') + ')</summary><table><tbody>' +
+      col.variants.map(function (v) { return '<tr><td>' + esc(v.from) + ' <span class="muted">(' + v.n + ')</span></td><td>→</td><td><input type="text" data-ch="map" data-c="' + c + '" data-from="' + esc(v.from) + '" value="' + esc(v.to) + '" aria-label="Valor padronizado para ' + esc(v.from) + '"></td></tr>'; }).join('') +
+      '</tbody></table><p class="reason">Edite o valor da direita para mudar a padronização (vazio = ausente).</p></details>';
+  }
+  return h + '</article>';
+}
+
+function viewGeneral() {
+  var o = S.opts;
+  function cb(k, label, help) { return '<label><input type="checkbox" data-ch="opt" data-k="' + k + '"' + (o[k] ? ' checked' : '') + '><span>' + label + (help ? '<br><span class="muted small">' + help + '</span>' : '') + '</span></label>'; }
+  return '<div class="opts">' +
+    cb('trim', 'Limpar textos', 'Remove espaços nas pontas, espaços duplicados e aspas simples envolventes (str.strip).') +
+    cb('unify', 'Unificar categorias', 'Junta variações de maiúsculas, acentos e espaços: "rs", "Rs", " RS" → "RS".') +
+    cb('abbrev', 'Unificar abreviações', 'Junta abreviações de uma única palavra: "F", "Fem" → "Feminino".') +
+    cb('smartNulls', 'Proteger categorias legítimas', '"none", "NA", "-" frequentes (≥ 5%) em colunas de texto ficam como categoria, não como ausente.') +
+    cb('dedup', 'Remover linhas duplicadas', 'Compara as linhas depois da padronização (pega quase-duplicatas).') +
+    cb('dedupForce', 'Remover duplicatas mesmo quando forem a maioria das linhas', 'Por padrão, se mais da metade das linhas se repete (ex.: Titanic, uma linha por pessoa sem identificador), elas são mantidas.') +
+    cb('dropIndex', 'Remover coluna de índice sem nome', 'Coluna "Unnamed: 0" com 0, 1, 2… gerada pelo pandas.') +
+    cb('dropEmptyCols', 'Remover colunas totalmente vazias', '') +
+    cb('snake', 'Padronizar nomes das colunas', 'minúsculas, sem acentos, com "_" (ex.: "Data Abertura" → "data_abertura").') +
+    '<label style="flex-direction:column;align-items:stretch">Marcadores de valor ausente (separados por vírgula; célula vazia é sempre ausente)<textarea data-ch="nullTokens">' + esc(o.nullTokens) + '</textarea></label>' +
+    '<label style="align-items:center">Não imputar colunas com mais de <input type="number" min="0" max="100" data-ch="maxImputePct" value="' + o.maxImputePct + '" style="width:70px"> % de ausentes</label>' +
+    '<div><button class="btn small" data-act="resetopts">Restaurar padrões</button></div></div>';
+}
+
+function viewRules() {
+  var r = S.res;
+  var colOpts = '<option value="*">Todas as colunas</option>' + r.cols.map(function (c) { return c.dropped ? '' : '<option value="' + c.c + '">' + esc(c.origName) + '</option>'; }).join('');
+  return '<p class="muted small" style="margin-top:0">Regras aplicadas antes de todo o tratamento (como df.replace / df.loc). Substituir por vazio = valor ausente.</p>' +
+    '<div class="rulebox"><label>Coluna<select id="rcol">' + colOpts + '</select></label><label>Localizar<input type="text" id="rfind" placeholder="valor ou expressão"></label>' +
+    '<label>Substituir por<input type="text" id="rrep" placeholder="novo valor"></label><label>Tipo<select id="rmode"><option value="exact">Exato</option><option value="contains">Contém</option><option value="regex">Regex</option></select></label>' +
+    '<label><span>Maiúsc.</span><input type="checkbox" id="rcase" title="diferenciar maiúsculas"></label><button class="btn primary" data-act="addrule">Adicionar regra</button></div>' +
+    (S.opts.rules.length ? '<table class="list"><thead><tr><th>#</th><th>Coluna</th><th>Localizar</th><th>Substituir</th><th>Tipo</th><th>Células</th><th></th></tr></thead><tbody>' +
+      S.opts.rules.map(function (x, i) { return '<tr><td>' + (i + 1) + '</td><td>' + (x.col === '*' ? 'todas' : esc(S.table.headers[+x.col])) + '</td><td><code>' + esc(x.find) + '</code></td><td><code>' + esc(x.replace) + '</code></td><td>' + { exact: 'Exato', contains: 'Contém', regex: 'Regex' }[x.mode] + (x.caseSensitive ? ' · Aa' : '') + '</td><td>' + (x.count || 0) + '</td><td><button class="btn small" data-act="delrule" data-v="' + i + '">remover</button></td></tr>'; }).join('') + '</tbody></table>' : '<p class="muted small">Nenhuma regra.</p>');
+}
+
+function viewBins() {
+  var nums = S.res.cols.filter(function (c) { return !c.dropped && c.type === 'numero'; });
+  if (!nums.length) return '<p class="muted">Nenhuma coluna numérica para discretizar.</p>';
+  return '<p class="muted small" style="margin-top:0">Cria uma nova coluna de categorias a partir de faixas de um número (pd.cut). Ex.: idade com limites 0, 18, 50, 120 e nomes Jovens, Adultos, Idosos.</p>' +
+    '<div class="rulebox"><label>Coluna<select id="bcol">' + nums.map(function (c) { return '<option value="' + c.c + '">' + esc(c.name) + '</option>'; }).join('') + '</select></label>' +
+    '<label>Limites<input type="text" id="bedges" placeholder="0, 18, 50, 120"></label><label>Nomes das faixas<input type="text" id="blabels" placeholder="Jovens, Adultos, Idosos"></label>' +
+    '<label>Nova coluna<input type="text" id="bname" placeholder="Faixa_Etaria"></label><button class="btn primary" data-act="addbin">Criar faixas</button></div>' +
+    '<div id="binerr"></div>' +
+    (S.opts.bins.length ? '<table class="list"><thead><tr><th>Nova coluna</th><th>Origem</th><th>Limites</th><th>Nomes</th><th></th></tr></thead><tbody>' + S.opts.bins.map(function (b, i) {
+      return '<tr><td>' + esc(b.name) + '</td><td>' + esc(S.table.headers[+b.col]) + '</td><td>' + b.edges.join(', ') + '</td><td>' + esc(b.labels.join(', ')) + '</td><td><button class="btn small" data-act="delbin" data-v="' + i + '">remover</button></td></tr>';
+    }).join('') + '</tbody></table>' : '');
+}
+
+function viewLog() {
+  var r = S.res;
+  var items = [];
+  r.cols.forEach(function (c) {
+    if (c.dropped) { items.push('<li><b>' + esc(c.origName) + '</b>: ' + esc(c.dropReason) + '</li>'); return; }
+    if (c.did.length) items.push('<li><b>' + esc(c.origName) + (c.name !== c.origName ? ' → ' + esc(c.name) : '') + '</b> [' + Core.TYPE_LABEL[c.type] + ']<ul class="did">' + c.did.map(function (d) { return '<li>' + esc(d) + '</li>'; }).join('') + '</ul></li>');
+  });
+  r.log.filter(function (e) { return e.col === 'linhas'; }).forEach(function (e) { items.push('<li><b>Linhas</b>: ' + esc(e.msg) + '</li>'); });
+  return items.length ? '<ul class="loglist">' + items.join('') + '</ul>' : '<p class="muted">Nenhuma alteração.</p>';
+}
+
+function viewExport() {
+  var r = S.res, per = 25, total = S.view === 'tratado' ? r.rows.length : S.table.n, pages = Math.max(1, Math.ceil(total / per));
+  if (S.page >= pages) S.page = pages - 1;
+  var from = S.page * per, to = Math.min(total, from + per), h = '';
+  h += '<div class="panel"><div class="ctl" style="justify-content:space-between"><div class="seg" role="group" aria-label="Visualização">' +
+    '<button data-act="view" data-v="tratado" aria-pressed="' + (S.view === 'tratado') + '">Dados tratados (' + r.rows.length.toLocaleString('pt-BR') + ')</button>' +
+    '<button data-act="view" data-v="original" aria-pressed="' + (S.view === 'original') + '">Dados originais (' + S.table.n.toLocaleString('pt-BR') + ')</button></div>' +
+    '<div class="legend"><span><i style="background:var(--imp)"></i>preenchido</span><span><i style="background:var(--fmt)"></i>convertido/padronizado</span><span><i style="background:var(--inv)"></i>inválido → ausente</span></div></div>';
+  h += '<div class="tablewrap" style="margin-top:10px"><table class="data"><thead><tr><th>#</th>';
+  if (S.view === 'tratado') {
+    h += r.outCols.map(function (c) { return '<th title="' + esc(Core.TYPE_LABEL[c.type]) + '">' + esc(c.name) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    for (var i = from; i < to; i++) {
+      var row = r.rows[i];
+      h += '<tr><td class="rn">' + (i + 1) + '</td>' + r.outCols.map(function (c) {
+        var v = c.values[row], f = c.flags ? c.flags[row] : 0, cls = [];
+        if (f & 8) cls.push('imp'); else if (f & 4) cls.push('inv'); else if (f & 19) cls.push('fmt');
+        if (v === null) cls.push('nul');
+        if (typeof v === 'number') cls.push('num');
+        var txt = v === null ? '—' : typeof v === 'boolean' ? (v ? 'True' : 'False') : typeof v === 'number' ? Core.cellOut(v) : v;
+        return '<td class="' + cls.join(' ') + '">' + esc(txt) + '</td>';
+      }).join('') + '</tr>';
+    }
+  } else {
+    h += S.table.headers.map(function (n) { return '<th>' + esc(n) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    for (var j = from; j < to; j++) {
+      h += '<tr><td class="rn">' + (j + 1) + '</td>' + S.table.raw.map(function (col) { var v = col[j]; return '<td' + (v === null || v === '' ? ' class="nul"' : '') + '>' + esc(v === null ? '—' : v) + '</td>'; }).join('') + '</tr>';
+    }
+  }
+  h += '</tbody></table></div><div class="pager"><span>' + (total ? (from + 1) + '–' + to + ' de ' + total.toLocaleString('pt-BR') : 'sem linhas') + '</span>' +
+    '<button class="btn small" data-act="page" data-v="-1"' + (S.page === 0 ? ' disabled' : '') + '>‹ anterior</button><button class="btn small" data-act="page" data-v="1"' + (S.page >= pages - 1 ? ' disabled' : '') + '>próxima ›</button></div></div>';
+
+  var base = S.file.name.replace(/\.[^.]+$/, '');
+  h += '<div class="exportgrid">' +
+    '<div class="panel"><h2>CSV</h2><div class="opts">' +
+    '<label>Separador <select data-ch="csv" data-k="sep"><option value=","' + (S.csv.sep === ',' ? ' selected' : '') + '>Vírgula ,</option><option value=";"' + (S.csv.sep === ';' ? ' selected' : '') + '>Ponto e vírgula ; (Excel em português)</option></select></label>' +
+    '<label>Decimal <select data-ch="csv" data-k="dec"><option value="."' + (S.csv.dec === '.' ? ' selected' : '') + '>Ponto 1.5</option><option value=","' + (S.csv.dec === ',' ? ' selected' : '') + '>Vírgula 1,5</option></select></label>' +
+    '<label><input type="checkbox" data-ch="csv" data-k="bom"' + (S.csv.bom ? ' checked' : '') + '> UTF-8 com BOM (acentos corretos no Excel)</label>' +
+    '<button class="btn primary" data-act="dl" data-v="csv">Baixar ' + esc(base) + '_limpo.csv</button></div></div>' +
+    '<div class="panel"><h2>Excel</h2><p class="muted small">Números, datas e booleanos já tipados.</p><button class="btn primary" data-act="dl" data-v="xlsx">Baixar ' + esc(base) + '_limpo.xlsx</button></div>' +
+    '<div class="panel"><h2>JSON</h2><p class="muted small">Lista de registros com tipos reais (número, booleano, null).</p><button class="btn primary" data-act="dl" data-v="json">Baixar ' + esc(base) + '_limpo.json</button></div>' +
+    '<div class="panel"><h2>Log</h2><p class="muted small">Tudo o que foi feito, coluna por coluna.</p><button class="btn" data-act="dl" data-v="log">Baixar ' + esc(base) + '_log.txt</button></div></div>';
+  h += '<div class="row-actions"><button class="btn" data-act="step" data-v="2">← Voltar e ajustar</button></div>';
+  return h;
+}
+
+// ------------------------------------------------------------ eventos
+function download(name, data, type) {
+  var blob = data instanceof Blob ? data : new Blob([data], { type: type });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+function doDownload(kind) {
+  var base = S.file.name.replace(/\.[^.]+$/, '');
+  if (kind === 'csv') {
+    if (S.csv.sep === ',' && S.csv.dec === ',') { S.csv.dec = '.'; }
+    download(base + '_limpo.csv', Core.toCSV(S.res, S.csv), 'text/csv;charset=utf-8');
+  } else if (kind === 'json') download(base + '_limpo.json', Core.toJSON(S.res), 'application/json');
+  else if (kind === 'log') download(base + '_log.txt', Core.logText(S.res, S.file.name), 'text/plain;charset=utf-8');
+  else if (kind === 'xlsx') {
+    busy(true);
+    loadXLSX().then(function (X) {
+      var ws = X.utils.aoa_to_sheet(Core.toAOA(S.res), { cellDates: true, dateNF: 'yyyy-mm-dd' });
+      var wb = X.utils.book_new(); X.utils.book_append_sheet(wb, ws, 'dados_limpos');
+      var out = X.write(wb, { bookType: 'xlsx', type: 'array' });
+      busy(false);
+      download(base + '_limpo.xlsx', new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    }, function (e) { busy(false); alert(e.message); });
+  }
+}
+
+document.addEventListener('click', function (e) {
+  var el = e.target.closest('[data-act]');
+  if (!el) { var d = e.target.closest('#drop'); if (d && !e.target.closest('button')) document.getElementById('fileInput').click(); return; }
+  var act = el.getAttribute('data-act'), v = el.getAttribute('data-v');
+  if (act === 'step') { S.step = +v; S.page = 0; render(); window.scrollTo(0, 0); }
+  else if (act === 'newfile') { S.step = 1; S.res = null; S.table = null; S.error = ''; render(); }
+  else if (act === 'sample') { openFile('exemplo_clientes_sujo.csv', new TextEncoder().encode(SAMPLE)); }
+  else if (act === 'tab') { S.tab = v; render(); }
+  else if (act === 'view') { S.view = v; S.page = 0; render(); }
+  else if (act === 'page') { S.page += +v; render(); }
+  else if (act === 'dl') doDownload(v);
+  else if (act === 'resetopts') { var keep = { rules: S.opts.rules, bins: S.opts.bins, cols: S.opts.cols }; S.opts = Core.defaultOptions(); S.opts.rules = keep.rules; S.opts.bins = keep.bins; S.opts.cols = keep.cols; rerun(); }
+  else if (act === 'addrule') {
+    var find = document.getElementById('rfind').value, mode = document.getElementById('rmode').value;
+    if (!find && mode !== 'exact') return;
+    if (mode === 'regex') { try { new RegExp(find); } catch (err) { alert('Expressão regular inválida: ' + err.message); return; } }
+    S.opts.rules.push({ col: document.getElementById('rcol').value, find: find, replace: document.getElementById('rrep').value, mode: mode, caseSensitive: document.getElementById('rcase').checked });
+    rerun();
+  }
+  else if (act === 'delrule') { S.opts.rules.splice(+v, 1); rerun(); }
+  else if (act === 'addbin') {
+    var edges = document.getElementById('bedges').value.split(/[;,\s]+/).filter(Boolean).map(function (x) { return +x.replace(',', '.'); });
+    var labels = document.getElementById('blabels').value.split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    var col = document.getElementById('bcol').value, name = document.getElementById('bname').value.trim();
+    var err = '';
+    if (edges.length < 2 || edges.some(isNaN)) err = 'Informe pelo menos 2 limites numéricos.';
+    else if (edges.some(function (x, i) { return i && x <= edges[i - 1]; })) err = 'Os limites precisam estar em ordem crescente.';
+    if (!err && !labels.length) labels = edges.slice(0, -1).map(function (x, i) { return x + '–' + edges[i + 1]; });
+    if (!err && labels.length !== edges.length - 1) err = 'São ' + (edges.length - 1) + ' faixas: informe ' + (edges.length - 1) + ' nomes (ou deixe vazio).';
+    if (err) { document.getElementById('binerr').innerHTML = '<div class="err">' + esc(err) + '</div>'; return; }
+    S.opts.bins.push({ col: col, edges: edges, labels: labels, name: name || (S.table.headers[+col] + '_faixa') });
+    rerun();
+  }
+  else if (act === 'delbin') { S.opts.bins.splice(+v, 1); rerun(); }
+});
+
+document.addEventListener('change', function (e) {
+  var el = e.target;
+  if (el.id === 'fileInput') { var f = el.files[0]; if (f) readLocal(f); el.value = ''; return; }
+  var ch = el.getAttribute('data-ch'); if (!ch) return;
+  var c = el.getAttribute('data-c'), k = el.getAttribute('data-k');
+  if (ch === 'ro') { S.ro[k] = el.value; parseAndRun(); return; }
+  if (ch === 'csv') { S.csv[k] = el.type === 'checkbox' ? el.checked : el.value; if (k === 'sep') S.csv.dec = el.value === ';' ? ',' : '.'; render(); return; }
+  if (ch === 'colfilter') { S.colFilter = el.value; render(); return; }
+  if (ch === 'opt') { S.opts[k] = el.checked; rerun(); return; }
+  if (ch === 'nullTokens') { S.opts.nullTokens = el.value; rerun(); return; }
+  if (ch === 'maxImputePct') { S.opts.maxImputePct = Math.max(0, Math.min(100, +el.value || 0)); rerun(); return; }
+  var o = colOv(c);
+  if (ch === 'name') { o.name = el.value.trim(); }
+  else if (ch === 'keep') { o.keep = el.checked; }
+  else if (ch === 'type') { if (el.value) o.type = el.value; else delete o.type; delete o.map; }
+  else if (ch === 'strategy') { o.strategy = el.value; }
+  else if (ch === 'constant') { o.constant = el.value; }
+  else if (ch === 'outlier') { o.outlier = el.value; }
+  else if (ch === 'min' || ch === 'max') { if (el.value === '') delete o[ch]; else o[ch] = el.value; }
+  else if (ch === 'keepTokens') { o.keepTokens = el.checked; }
+  else if (ch === 'dashZero') { o.dashZero = el.checked; }
+  else if (ch === 'map') { o.map = o.map || {}; o.map[el.getAttribute('data-from')] = el.value.trim(); }
+  rerun();
+});
+
+function readLocal(file) {
+  busy(true);
+  var fr = new FileReader();
+  fr.onload = function () { busy(false); openFile(file.name, new Uint8Array(fr.result)); };
+  fr.onerror = function () { busy(false); S.error = 'Não foi possível ler o arquivo.'; render(); };
+  fr.readAsArrayBuffer(file);
+}
+document.addEventListener('dragover', function (e) { var d = document.getElementById('drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+document.addEventListener('dragleave', function (e) { var d = document.getElementById('drop'); if (d && !d.contains(e.relatedTarget)) d.classList.remove('over'); });
+document.addEventListener('drop', function (e) {
+  var d = document.getElementById('drop'); if (!d) return;
+  e.preventDefault(); d.classList.remove('over');
+  var f = e.dataTransfer.files[0]; if (f) readLocal(f);
+});
+document.addEventListener('keydown', function (e) { if (e.target.id === 'drop' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); document.getElementById('fileInput').click(); } });
+
+render();
+})();
+</script>
+</body>
+</html>
