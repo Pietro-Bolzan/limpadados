@@ -138,7 +138,10 @@ td.nul{color:var(--muted);font-style:italic}
 .seg button{border:0;background:var(--panel);padding:5px 12px;cursor:pointer;font-size:13px}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .exportgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
-.exportgrid .panel{margin:0}
+.exportgrid .panel{margin:0;min-width:0}
+.exportgrid .opts label{flex-wrap:wrap;align-items:center}
+.exportgrid select{min-width:0;width:100%}
+.exportgrid .btn{white-space:normal;width:100%;overflow-wrap:anywhere}
 .loglist{list-style:none;padding:0;margin:0;font-size:13px}
 .loglist li{padding:5px 0;border-bottom:1px solid var(--line)}
 .loglist b{font-weight:600}
