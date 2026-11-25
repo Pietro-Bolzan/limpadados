@@ -593,7 +593,7 @@ var Core = (function () {
     if (FREE_TEXT.test(tok.join('_'))) return { type: 'texto', why: 'nome indica texto livre (observação, descrição...)' };
     var avgLen = sv.reduce(function (a, v) { return a + String(v).length; }, 0) / sv.length;
     if ((uniq >= 0.9 && sv.length >= 10) || avgLen > 40) return { type: 'texto', why: 'valores quase todos diferentes (texto livre)' };
-    return { type: 'categoria', why: distinct + ' categorias distintas' };
+    return { type: 'categoria', why: 'texto com valores que se repetem (categorias)' };
   }
 
   // --------------------------------------------- unificação de categorias
@@ -1418,7 +1418,9 @@ function colCard(col) {
     h += '<div class="ctl"><label>Outliers' + (oc.count ? ' <span class="badge warn">' + oc.count + '</span>' : '') + ' <select data-ch="outlier" data-c="' + c + '">' +
       [['keep', 'Manter e sinalizar'], ['cap', 'Limitar aos limites IQR'], ['null', 'Converter em ausente'], ['remove', 'Remover linhas']].map(function (x) { return '<option value="' + x[0] + '"' + ((o.outlier || 'keep') === x[0] ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '</select></label></div>';
     if (oc.count) h += '<p class="reason">Limites IQR: ' + F(oc.lo) + ' a ' + F(oc.hi) + '.</p>';
-    h += '<div class="ctl"><span>Faixa válida</span><input type="number" step="any" data-ch="min" data-c="' + c + '" value="' + esc(o.min !== undefined ? o.min : '') + '" placeholder="' + (col.range && col.range.auto ? col.range.min : 'mín') + '" style="width:80px" aria-label="mínimo válido"><input type="number" step="any" data-ch="max" data-c="' + c + '" value="' + esc(o.max !== undefined ? o.max : '') + '" placeholder="' + (col.range && col.range.auto ? col.range.max : 'máx') + '" style="width:80px" aria-label="máximo válido">' + (col.range && col.range.auto ? '<span class="muted small">(0–120 automático para idade)</span>' : '') + '</div>';
+    var ar = col.range && col.range.auto ? col.range : null;
+    h += '<div class="ctl"><span>Faixa válida</span><input type="number" step="any" data-ch="min" data-c="' + c + '" value="' + esc(o.min !== undefined ? o.min : '') + '" placeholder="' + (ar && ar.min !== null ? ar.min : 'mín') + '" style="width:80px" aria-label="mínimo válido"><input type="number" step="any" data-ch="max" data-c="' + c + '" value="' + esc(o.max !== undefined ? o.max : '') + '" placeholder="' + (ar && ar.max !== null ? ar.max : 'máx') + '" style="width:80px" aria-label="máximo válido">' +
+      (ar ? '<span class="muted small">(automática pelo nome da coluna: ' + (ar.max === null ? '≥ ' + ar.min : ar.min + ' a ' + ar.max) + ')</span>' : '') + '</div>';
   }
   if (col.dashZero || o.dashZero !== undefined) {
     h += '<div class="ctl"><label><input type="checkbox" data-ch="dashZero" data-c="' + c + '"' + (col.dashZero ? ' checked' : '') + '> ler "-" como zero</label></div>';
